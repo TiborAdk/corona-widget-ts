@@ -2573,7 +2573,7 @@ await Helper.loadConfig();
 const rkiService = new RkiService();
 const defaultSmall = '';
 const defaultMedium = '0;1,52.02,8.54';
-const defaultLarge = '0;1,52.02,8.54; 2,48.11,11.60; 3,50.33,8.75; 4,48.78,9.19; 5,50.11,8.67; 6,48.89,8.70';
+const defaultLarge = '0;1,52.02,8.54;2,52.52,13.37;3,53.54,9.98;4,48.13,11.59;5,50.94,6.96;6,50.11,8.70';
 const widget = new IncidenceListWidget(args.widgetParameter ?? defaultMedium, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge);
 // @ts-ignore
 Script.setWidget(await widget.init());
