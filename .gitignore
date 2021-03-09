@@ -1,0 +1,9 @@
+# Editors
+.idea
+.vscode
+
+# Dependency
+node_modules
+
+# Generated Files
+built/*.js.map

@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "@types/scriptable-ios": "^1.6.1",
+    "ts-node": "^9.1.1"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "lib": ["ES2020"],
+    "module": "esnext",
+    "target": "ES2020",
+    "sourceMap": true,
+    "outDir": "./built",
+    "strictNullChecks": true,
+    "noFallthroughCasesInSwitch": true,
+  },
+  "include": [
+    "./src/incidence.ts"
+  ],
+  "exclude": [
+    "./node_modules",
+  ]
+}
