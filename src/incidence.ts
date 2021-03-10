@@ -2986,24 +2986,37 @@ class Helper {
         }
 
         return multiRows.getMultiRows();
+    }
 
+    static mergeConfig(target: { [k: string]: { [k: string]: any } }, source: { [k: string]: { [k: string]: any } }, skippKeys: string[] = []): void {
+        for (const key in source) {
+            if (skippKeys.includes(key)) {
+                console.log('skipping key ' + key);
+                continue;
+            }
+            if (key in target) {
+                target[key] = {...target[key], ...source[key]};
+            } else {
+                target[key] = source[key];
+            }
+        }
     }
 
     static async loadConfig() {
         const path = 'config.json';
         const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json'
-        let cfg: any = CFG;
+        let cfg: { [key: string]: { [key: string]: any } } = CFG;
 
-        if (!await cfm.fileExists(path)) {
+        if (!cfm.fileExists(path)) {
             console.log('Config file does not exist. Trying to get default config from repositoryy.');
             const req = new Request(url);
             req.timeoutInterval = 20;
 
-            const data = await req.loadJSON();
+            const data = await req.loadString();
             const response = req.response;
-            if (response.statsCode && response.statusCode === 200) {
+            if (response.statusCode && response.statusCode === 200) {
                 console.log('Config loaded from web.');
-                cfg = data;
+                cfg = JSON.parse(data);
             } else {
                 console.warn('Loading config from web failed.');
             }
@@ -3014,11 +3027,11 @@ class Helper {
                 console.log('Config loaded successfully.');
                 cfg = resp.data;
             } else {
-                console.warn('Failed reading config.');
+                console.warn('Failed reading config');
             }
         }
-        Object.assign(CFG, cfg);
 
+        Helper.mergeConfig(CFG, cfg, ['storage']);
     }
 }
 

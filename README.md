@@ -43,7 +43,8 @@ von [rphl](https://github.com/rphl): [rphl/corona-widget](https://github.com/rph
 * Daten werden Standardmäßig unter **Dateien (App)** > **iCloud** > **Scriptable** > **corona_widget_ts** > *.json
   zwischengespeichert.
 * Die allgemeine Konfiguration erfolgt über die Date **config.json**.\
-  (Falls die Datei nicht existiert werden die Standardwerte aus dem Repository geladen und in der Datei **config.json** gespeichert)
+  (Falls die Datei nicht existiert werden die Standardwerte aus dem Repository geladen und in der Datei **config.json**
+  gespeichert)
 
 ![WidgetParameter]()
 
@@ -146,73 +147,114 @@ Angezeigte Informationen:
 
 (*: `CFG.vaccine.show = true`)
 
-
 # Erweiterte Konfiguration
-Weitere Konfigurationen können über die Variable `CFG` vorgenommen werden.
 
-## CFG.graph
+Die Konfiguration erfolgt über die Date **config.json** im Ordner `iCloud/Scriptable/corona_widget_ts/`. Dort können,
+falls nicht anders vermerkt, folgende Werte gesetzt werden.
+
+## graph
+
 Konfiguration für die angezeigten Graphen.
 
-### CFG.graph.maxShownDays
-**Beschreibung**: Maximal angezeigte Werte pro Graph. \
-**Werte**: `Zahl > 7` \
-**Standard**: `28`
+### graph.maxShownDays
 
-### CFG.graph.upsideDown
-**Beschreibung**: Ob die Graphen kopfüber angezeigt werden sollen. (0 oben und maximal Wert unten.) \
-**Werte**: `true | false` \
+**Beschreibung**: Maximal angezeigte Werte pro Graph. \
+**Werte**: `(7, ∞)` \
+**Standard**: `28` \
+*Die tatsächliche Anzahl angezeigter Werte kann geringer sein, da der Graph den zur verfügung stehenden Platz
+berücksichtigt.*
+
+### graph.upsideDown
+
+**Beschreibung**: Graphen werden kopfüber angezeigt werden sollen. (0 oben und maximal Wert unten.) \
+**Werte**: `true`|`false` \
 **Standard**: `false`
 
-## CFG.widget
-Wert zur konfiguration des angezeigten Widgets.
+## widget
 
-### CFG.widget.refreshInterval
+Werte zur konfiguration des angezeigten Widgets.
+
+### widget.refreshInterval
+
 **Beschreibung**: Interval, indem das Widget aktualisiert wird. (In Sekunden) \
 **Werte**: `(0, ∞)` \
 **Standard** `3600` (1h)
 
-### CFG.widget.openUrl
-**Beschreibung**: Zu öffnende Url, wenn `CFG.widget.openUrlOnTap` `true` ist. \
+### widget.openUrl
+
+**Beschreibung**: Zu öffnende Url, wenn `CFG.widget.openUrlOnTap` = `true`. \
 **Werte**: `Url`\
-**Standard**: `https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4`
+**Standard**: `https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4` \
+*Standardwert ist das Corona-Dashbor des RKIs.*
 
-### CFG.widget.openUrlOnTap
+### widget.openUrlOnTap
+
 **Beschreibung**: Kontrolliert, ob die Url in `CFG.widget.oenUrl`, beim Drücken auf das Widget geöffnet werden soll. \
-**Werte**: `true | false` \
+**Werte**: `true`|`false` \
 **Standard**: `false`
 
-### CFG.widget.alternateLarge
-**Beschreibung**: Im großen Widget werden alle Städte, Landkreise, etc eines Bundeslandes zusammengen mit dem Bundesland in einem Widget dargestellt. Hierbei könne bis zu 8 Zeilen, inklusive der Bundesländer angezeigt werden.
-**Werte**: `true|false`
-**Standard**: `false`
+### widget.alternateLarge
 
-## CFG.api
+**Beschreibung**: Aktiviert die Alternative Darstellung des großen Widgets (large)\
+**Werte**: `true`|`false` \
+**Standard**: `false` \
+*Im großen Widget werden alle Städte, Landkreise, etc eines Bundeslandes zusammen mit dem Bundesland zusammengefasst
+dargestellt. Hierbei könne bis zu 8 Zeilen, inklusive der Bundesländer angezeigt werden.*
 
-### CFG.api.csvRvalueField
+## api
+
+### api.csvRvalueField
+
 **Beschreibung**: Array von möglichen Namen, des Feldes für den gesuchten R-Wert.\
 **Werte**: `string[]` \
 **Standard**: `['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes']`
 
+## storage
 
-## CFG.storage
-### CFG.storage.directory
-**Beschreibung**: Ordner, in dem zwischengespeicherte Werte abgelegt werden. Wenn der Ordner nicht existiert, wird dieser erstellt.\
+**!!! Kann **nicht** über die Konfigurationsdatei eingestellt werden.** Gespeicherte änderungen werden beim Laden der
+Konfiguration ignoriert.\
+Einstellungen müssen direkt im Script über die Konstante `CFG` vorgenommen werden.\
+Beispiel:
+
+  ```javascript
+  // incidence.js
+const CFG = {
+  storage: {
+    directory: 'my_awesome_dir',
+    fileStub: 'my_awesome_filestub',
+  },
+  ...
+}
+```
+
+### storage.directory
+
+**Beschreibung**: Ordner, in dem zwischengespeicherte Werte abgelegt werden. Wenn der Ordner nicht existiert, wird
+dieser erstellt.\
 **Werte**: `string` \
-**Standard**: `CoronaWidgetTs`
+**Standard**: `'corona_widget_ts'` \
+*Kann nicht über Konfigurationsdatei gesetzt werden. (Einstellungen über `CFG` im Script).*
 
-### CFG.storage.fileStub
+### storage.fileStub
+
 **Beschreibung**: \
 **Werte**: `string` \
-**Standard**: `coronaWidget_`
+**Standard**: `coronaWidget_` \
+*Kann nicht über Konfigurationsdatei gesetzt werden. (Einstellungen über `CFG` im Script).*
 
-## CFG.state
-### CFG.state.useShortName
+## state
+
+### state.useShortName
+
 **Beschreibung**: Kontrolliert, ob für Bundesländer standardmäßig die Abkürzung verwendet werden soll. \
-**Werte**: `true | false` \
+**Werte**: `true`|`false` \
 **Standard**: `false`
 
-## CFG.incidence
-### CFG.incidence.disableLive
-**Beschreibung**: Standardmäßig wird der Inzidnezwert des aktuellen Tages aus den aktuellen Daten berechnet. Anstelle dessen kann der Inzidenzwert der API angezeigt werden, sofern dieser ausgegeben wird.\
-**Werte**: `true | false` \
+## incidence
+
+### incidence.disableLive
+
+**Beschreibung**: Standardmäßig wird der Inzidenzwert des aktuellen Tages aus den aktuellen Daten berechnet. Anstelle
+dessen kann der Inzidenzwert der API angezeigt werden, sofern dieser ausgegeben wird.\
+**Werte**: `true`|`false` \
 **Standard**: `false`

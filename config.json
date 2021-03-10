@@ -1,8 +1,4 @@
 {
-  "storage": {
-    "directory": "corona_widget_ts",
-    "fileStub": "coronaWidget_"
-  },
   "graph": {
     "maxShownDays": 28,
     "upsideDown": false,
