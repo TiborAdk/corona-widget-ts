@@ -34,7 +34,10 @@ const CFG = {
     vaccine: {
         show: true, // show the data regarding the vaccination. Small widget wont show this information.
     },
-
+    script: {
+        autoUpdate: true, // whether the script should update it self
+        autoUpdateInterval: 1, // how often the script should update it self (in days)
+    }
 }
 
 type State = {
@@ -61,6 +64,9 @@ type Env = {
     cacheCountries: Map<string, IncidenceData<MetaCountry>>,
     cacheVaccines: Map<string, VaccineData>,
     states: Map<string, State>,
+    script: {
+        filename: string,
+    }
 }
 
 const ENV: Env = {
@@ -98,6 +104,9 @@ const ENV: Env = {
         ],
     ),
     cache: new Map<any, any>(),
+    script: {
+        filename: this.module.filename.replace(/^.*[\\\/]/, ''),
+    }
 }
 
 enum DataStatus {
@@ -3033,6 +3042,75 @@ class Helper {
 
         Helper.mergeConfig(CFG, cfg, ['storage']);
     }
+
+    static async updateScript() {
+        console.log('updateScript: starting');
+        const currentDate = new Date();
+        const {autoUpdateInterval, autoUpdate} = CFG.script;
+
+        if (!autoUpdate) {
+            console.log('updateScript: skipping due to config')
+            return;
+        }
+
+        let _data: { [k: string]: any } = {};
+        if (cfm.fileExists('.data.json', true)) {
+            const res = await cfm.read('.data.json', FileType.JSON, true);
+
+            if (res.status === DataStatus.OK && !res.isEmpty()) {
+                _data = res.data;
+            } else {
+                _data = {};
+            }
+        }
+
+        const lastUpdate = new Date(_data['lastUpdated'] ?? 0);
+        const nextUpdate = new Date(lastUpdate);
+        nextUpdate.setDate(nextUpdate.getDate() + autoUpdateInterval);
+
+        if (nextUpdate > currentDate) {
+            console.log(`updateScript: skip, last update less the ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago`);
+            return;
+        }
+
+        console.log('updateScript: getting new script');
+
+        const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
+        const request = new Request(url);
+        request.timeoutInterval = 10;
+
+        const script = await request.loadString();
+        const resp = request.response;
+        if (!resp.statusCode || resp.statusCode !== 200) {
+            console.warn('updateScript: aborting, error loading new script');
+            return;
+        }
+        if (script === '') {
+            console.log('updateScript: aborting, received empty script');
+            return;
+        }
+        const currentFile = ENV.script.filename;
+        const backupFile = currentFile.replace('.js', '.bak.js');
+
+        // `CustomFileManager` defaults to the baseDir.
+        // Since the script is not in it we need to set `baseDir` to `false` on any call to `cfm`
+        try {
+            if (cfm.fileExists(backupFile, false)) await cfm.remove(backupFile, false);
+            cfm.copy(currentFile, backupFile, false);
+            cfm.write(script, currentFile, FileType.TEXT, false);
+            cfm.remove(backupFile, false);
+            _data['lastUpdated'] = currentDate;
+            cfm.write(_data, '.data.json', FileType.JSON, true); // .data.json is stored in configDir
+            console.log('updateScript: script updated');
+        } catch (e) {
+            console.warn(e);
+            console.warn('updateScript: update failed, rolling back...');
+            if (cfm.fileExists(backupFile, false)) {
+                cfm.copy(backupFile, currentFile, false);
+                cfm.remove(backupFile, false);
+            }
+        }
+    }
 }
 
 enum RequestType {
@@ -3268,6 +3346,8 @@ class RkiService implements RkiServiceInterface {
 const cfm = new CustomFileManager(CFG.storage.directory, CFG.storage.fileStub);
 // @ts-ignore
 await Helper.loadConfig();
+// @ts-ignore
+await Helper.updateScript();
 const rkiService = new RkiService();
 
 const defaultSmall: string = '';

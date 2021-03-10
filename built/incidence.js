@@ -31,6 +31,10 @@ const CFG = {
     },
     vaccine: {
         show: true,
+    },
+    script: {
+        autoUpdate: true,
+        autoUpdateInterval: 1,
     }
 };
 var AreaType;
@@ -76,6 +80,9 @@ const ENV = {
         ['16', { short: 'TH', name: 'Thüringen' }],
     ]),
     cache: new Map(),
+    script: {
+        filename: this.module.filename.replace(/^.*[\\\/]/, ''),
+    }
 };
 var DataStatus;
 (function (DataStatus) {
@@ -562,7 +569,6 @@ class StatusBlockStack extends CustomWidgetStack {
     setStatus(dataStatus, location) {
         let icon;
         let text;
-        console.log(`dataStatus: ${dataStatus}, locationType: ${location?.type}, locationStatus: ${location?.status}`);
         if (location && location.type === LocationType.CURRENT) {
             if (dataStatus === DataStatus.OK || dataStatus === DataStatus.CACHED) {
                 [icon, text] = UI.getLocStatusIconAndText(location.status, location.type);
@@ -1485,7 +1491,7 @@ class CustomData {
         this.fm = fm;
     }
     static fromResponse(response) {
-        throw new Error(`'romResponse' must be implemented.`);
+        throw new Error(`'fromResponse' must be implemented.`);
     }
     getMaxFromDataObjectByIndex(index) {
         return CustomData.getMaxFromArrayOfObjectsByIndex(this.data, index);
@@ -2130,7 +2136,7 @@ var FileType;
     FileType["LOG"] = "log";
 })(FileType || (FileType = {}));
 class CustomFileManager {
-    constructor(directory, filestub) {
+    constructor(configDir, filestub) {
         try {
             this.fm = FileManager.iCloud();
             this.fm.documentsDirectory();
@@ -2139,32 +2145,33 @@ class CustomFileManager {
             console.warn(e);
             this.fm = FileManager.local();
         }
-        this.configDirectory = directory;
-        this.configPath = this.fm.joinPath(this.fm.documentsDirectory(), this.configDirectory);
+        this.configDir = configDir;
+        this.scriptableDir = this.fm.documentsDirectory();
+        this.configPath = this.fm.joinPath(this.fm.documentsDirectory(), this.configDir);
         this.filestub = filestub;
         if (!this.fm.isDirectory(this.configPath))
             this.fm.createDirectory(this.configPath);
     }
-    getAbsolutePath(relFilePath) {
-        return this.fm.joinPath(this.configPath, relFilePath);
+    getAbsolutePath(relFilePath, configDir = true) {
+        return this.fm.joinPath(configDir ? this.configPath : this.scriptableDir, relFilePath);
     }
-    async fileExists(filePath) {
-        return this.fm.fileExists(this.getAbsolutePath(filePath));
+    fileExists(filePath, configDir = true) {
+        return this.fm.fileExists(this.getAbsolutePath(filePath, configDir));
     }
-    async copy(from, to) {
-        const pathFrom = this.fm.joinPath(this.configDirectory, from);
-        const pathTo = this.fm.joinPath(this.configDirectory, to);
-        await this.fm.copy(pathFrom, pathTo);
+    copy(from, to, configDir = true) {
+        const pathFrom = this.getAbsolutePath(from, configDir);
+        const pathTo = this.getAbsolutePath(to, configDir);
+        this.fm.copy(pathFrom, pathTo);
     }
-    async read(file, type = FileType.TEXT) {
+    async read(file, type = FileType.TEXT, configDir = true) {
         const ext = CustomFileManager.extensionByType(type);
-        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext);
+        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext, configDir);
         if (this.fm.isFileStoredIniCloud(path) && !this.fm.isFileDownloaded(path)) {
             await this.fm.downloadFileFromiCloud(path);
         }
         if (this.fm.fileExists(path)) {
             try {
-                const resStr = await this.fm.readString(path);
+                const resStr = this.fm.readString(path);
                 if (type === FileType.JSON) {
                     return new DataResponse(JSON.parse(resStr));
                 }
@@ -2182,7 +2189,7 @@ class CustomFileManager {
             return DataResponse.notFound();
         }
     }
-    async write(data, file = this.filestub, type = FileType.TEXT) {
+    write(data, file = this.filestub, type = FileType.TEXT, configDir = true) {
         let dataStr;
         if (type === FileType.JSON) {
             dataStr = JSON.stringify(data);
@@ -2194,8 +2201,14 @@ class CustomFileManager {
             dataStr = data;
         }
         const ext = CustomFileManager.extensionByType(type);
-        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext);
+        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext, configDir);
         this.fm.writeString(path, dataStr);
+    }
+    remove(filePath, baseDir = true) {
+        this.fm.remove(this.getAbsolutePath(filePath, baseDir));
+    }
+    listContents(filePath, configDir = true) {
+        return this.fm.listContents(this.getAbsolutePath(filePath, configDir));
     }
     static extensionByType(type, omitDot = false) {
         const dot = omitDot ? '' : '.';
@@ -2349,19 +2362,33 @@ class Helper {
         }
         return multiRows.getMultiRows();
     }
+    static mergeConfig(target, source, skippKeys = []) {
+        for (const key in source) {
+            if (skippKeys.includes(key)) {
+                console.log('skipping key ' + key);
+                continue;
+            }
+            if (key in target) {
+                target[key] = { ...target[key], ...source[key] };
+            }
+            else {
+                target[key] = source[key];
+            }
+        }
+    }
     static async loadConfig() {
         const path = 'config.json';
         const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
         let cfg = CFG;
-        if (!await cfm.fileExists(path)) {
-            console.log('Config file does not exist. Trying to get default config from server.');
+        if (!cfm.fileExists(path)) {
+            console.log('Config file does not exist. Trying to get default config from repositoryy.');
             const req = new Request(url);
             req.timeoutInterval = 20;
-            const data = await req.loadJSON();
+            const data = await req.loadString();
             const response = req.response;
-            if (response.statsCode && response.statusCode === 200) {
+            if (response.statusCode && response.statusCode === 200) {
                 console.log('Config loaded from web.');
-                cfg = data;
+                cfg = JSON.parse(data);
             }
             else {
                 console.warn('Loading config from web failed.');
@@ -2375,10 +2402,72 @@ class Helper {
                 cfg = resp.data;
             }
             else {
-                console.warn('Failed reading config.');
+                console.warn('Failed reading config');
             }
         }
-        Object.assign(CFG, cfg);
+        Helper.mergeConfig(CFG, cfg, ['storage']);
+    }
+    static async updateScript() {
+        console.log('updateScript: starting');
+        const currentDate = new Date();
+        const { autoUpdateInterval, autoUpdate } = CFG.script;
+        if (!autoUpdate) {
+            console.log('updateScript: skipping due to config');
+            return;
+        }
+        let _data = {};
+        if (cfm.fileExists('.data.json', true)) {
+            const res = await cfm.read('.data.json', FileType.JSON, true);
+            if (res.status === DataStatus.OK && !res.isEmpty()) {
+                _data = res.data;
+            }
+            else {
+                _data = {};
+            }
+        }
+        const lastUpdate = new Date(_data['lastUpdated'] ?? 0);
+        const nextUpdate = new Date(lastUpdate);
+        nextUpdate.setDate(nextUpdate.getDate() + autoUpdateInterval);
+        if (nextUpdate > currentDate) {
+            console.log(`updateScript: skip, last update less the ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago`);
+            return;
+        }
+        console.log('updateScript: getting new script');
+        const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
+        const request = new Request(url);
+        request.timeoutInterval = 10;
+        const script = await request.loadString();
+        const resp = request.response;
+        if (!resp.statusCode || resp.statusCode !== 200) {
+            console.warn('updateScript: aborting, error loading new script');
+            return;
+        }
+        if (script === '') {
+            console.log('updateScript: aborting, received empty script');
+            return;
+        }
+        const currentFile = ENV.script.filename;
+        const backupFile = currentFile.replace('.js', '.bak.js');
+        // `CustomFileManager` defaults to the baseDir.
+        // Since the script is not in it we need to set `baseDir` to `false` on any call to `cfm`
+        try {
+            if (cfm.fileExists(backupFile, false))
+                await cfm.remove(backupFile, false);
+            cfm.copy(currentFile, backupFile, false);
+            cfm.write(script, currentFile, FileType.TEXT, false);
+            cfm.remove(backupFile, false);
+            _data['lastUpdated'] = currentDate;
+            cfm.write(_data, '.data.json', FileType.JSON, true); // .data.json is stored in configDir
+            console.log('updateScript: script updated');
+        }
+        catch (e) {
+            console.warn(e);
+            console.warn('updateScript: update failed, rolling back...');
+            if (cfm.fileExists(backupFile, false)) {
+                cfm.copy(backupFile, currentFile, false);
+                cfm.remove(backupFile, false);
+            }
+        }
     }
 }
 var RequestType;
@@ -2570,10 +2659,12 @@ class RkiService {
 const cfm = new CustomFileManager(CFG.storage.directory, CFG.storage.fileStub);
 // @ts-ignore
 await Helper.loadConfig();
+// @ts-ignore
+await Helper.updateScript();
 const rkiService = new RkiService();
 const defaultSmall = '';
 const defaultMedium = '0;1,52.02,8.54';
-const defaultLarge = '0;1,52.02,8.54;2,52.52,13.37;3,53.54,9.98;4,48.13,11.59;5,50.94,6.96;6,50.11,8.70';
+const defaultLarge = '0;1,52.02,8.54; 2,48.11,11.60; 3,50.33,8.75; 4,48.78,9.19; 5,50.11,8.67; 6,48.89,8.70';
 const widget = new IncidenceListWidget(args.widgetParameter ?? defaultMedium, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge);
 // @ts-ignore
 Script.setWidget(await widget.init());

@@ -27,5 +27,9 @@
   },
   "vaccine": {
     "show": true
+  },
+  "script": {
+    "autoUpdate": true,
+    "autoUpdateInterval": 1
   }
 }

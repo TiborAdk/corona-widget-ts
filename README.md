@@ -258,3 +258,17 @@ dieser erstellt.\
 dessen kann der Inzidenzwert der API angezeigt werden, sofern dieser ausgegeben wird.\
 **Werte**: `true`|`false` \
 **Standard**: `false`
+
+## script
+
+### script.autoUpdate
+
+**Beschreibung**: Kontrolliert, ob das Script automatisch aktualisiert werden soll.\
+**Werte**: `true`|`false` \
+**Standard**: `true`
+
+### script.autoUpdateInterval
+
+**Beschreibung**: Abstand in Tagen, in dem das Script eine neue Version aus dem Repository laden soll.
+**Werte**: `(0, ∞)` \
+**Standard**: `1` (1 Tag)
