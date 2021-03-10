@@ -55,7 +55,7 @@ von [rphl](https://github.com/rphl): [rphl/corona-widget](https://github.com/rph
 Das Widget erkennt automatisch den Standort. Es ist jedoch, möglich den Standort fest zu setzten. Die Koordinaten können
 z.B. über die Karten App ermittelt werden.
 
-Format: `[STANDORT[;STANDORT]...]` 
+Format: `[STANDORT[;STANDORT]...]`
 
 * `STANDORT`: `POS[,LAT,LON][,NAME]`
 * `POS`: Position im Widget. z.B.: 0 = erster Standort, 1= zweiter Standort.
@@ -65,6 +65,7 @@ Format: `[STANDORT[;STANDORT]...]`
 * `NAME`: _(optional)_ Anzeigename für den Standort.
 
 Dabei ist Folgendes zu beachten.
+
 1. Wenn keine Parameter angegeben werden, wird der aktuelle Standort verwendet.
 2. Bis zur größten Position (`POS`) müssen alle Positionen vorkommen außer die Position `0`.
 3. Wenn `POS = 0` nicht angegeben ist, wird an ihrer Stelle der aktuelle Standort angezeigt.
@@ -80,10 +81,20 @@ Dabei ist Folgendes zu beachten.
 * Eigener Name z.B "Home" für den ersten Standort: `0,52.022,8.522,Home`
 * Eigener Name z.B "Work" für den zweiten Standort: `1,52.514,13.380,Work`
 
+| Beispiel | Parameter|
+| --- | --- |
+| Aktueller Standort (Parameter leer)| ` `  |
+| Erster Standort statisch (SmallWidget)| `0,52.022,8.522`|
+| Zweiter Standort statisch (MediumWidget)| `1,52.022,8.522`|
+| Beide Standorte statisch (MediumWidget)| `0,52.022,8.522;1,52.514,13.380` |
+| Nur zweiter Standort ist statisch (MediumWidget)| `1,52.022,8.522` |
+| Eigener Name z.B "Home" für den ersten Standort| `0,52.022,8.522,Home` | 
+| Eigener Name z.B "Work" für den zweiten Standort| `1,52.514,13.380,Work` |
+
 # Widgets
 
-Es können drei verscheiden große Widgets angezeigt werden. Klein, Mittel und Groß.
-Ein kleines Widget kann Informationen zu einem Standort anzeigen, das Mittlere für bis zu zwei und das Große für bis zu 6.
+Es können drei verscheiden große Widgets angezeigt werden. Klein, Mittel und Groß. Ein kleines Widget kann Informationen
+zu einem Standort anzeigen, das mittlere Widget für bis zu zwei und das große Widget für bis zu 6.
 
 Wenn einem Widget über die Parameter mehr Standorte übergeben werden, als es anzeigen kann, werden diese verworfen.
 
@@ -111,8 +122,9 @@ Angezeigt Informationen:
 * **R-Wert** für Deutschland
 * **Inzidenz**, **langer Graph**, **neue Fälle**, **Impfquote*** für Deutschland.
 * **Inzidenz**, **langer Graph** und **neue Fälle** für jeden den Standort.
-* **Inzidenz**, **langer Graph**, **neue Fälle**, **Impfquote*** für bis zu zwei unterschiedliche Bundesland in dem die Standorte liegen.
-  
+* **Inzidenz**, **langer Graph**, **neue Fälle**, **Impfquote*** für bis zu zwei unterschiedliche Bundesland in dem die
+  Standorte liegen.
+
 (*: `CFG.vaccine.show = true`)
 
 ## Groß (large)
@@ -120,32 +132,34 @@ Angezeigt Informationen:
 ![widget_large]()
 
 Kann Informationen für bis zu sechs Standorte, bis zu vier Bundesländer und Deutschland anzeigen. \
-Als Bundesländer werden die ersten vier unterschiedlichen Bundesländer der Standorte genommen.
-Ausschlaggebend ist dabei die Anzeigereihenfolge der Standorte. 
+Als Bundesländer werden die ersten vier unterschiedlichen Bundesländer der Standorte genommen. Ausschlaggebend ist dabei
+die Anzeigereihenfolge der Standorte.
 
 Angezeigte Informationen:
 
 * **R-Wert** für Deutschland
 * **Inzidenz**, **langer Graph**, **neue Fälle**, **Impfquote*** für Deutschland.
 * **Inzidenz**, **langer Graph**, **neue Fälle** für jeden den Standort.
-* **Inzidenz**, **langer Graph**, **neue Fälle**, **Impfquote*** für bis zu vier unterschiedliche Bundesländer in dem die Standorte liegen.
-  
-(*: `CFG.vaccine.show = true`)
+* **Inzidenz**, **langer Graph**, **neue Fälle**, **Impfquote*** für bis zu vier unterschiedliche Bundesländer in dem
+  die Standorte liegen.
 
+(*: `CFG.vaccine.show = true`)
 
 ## Groß (large) alternativ
 
 ![widget_large_alternate]()
-Kann Informationen für bis zu 8 Standorte und Bundesländer anzeigen. Alle Standorte eines Bundeslandes werden zusammen mit dem jeweiligen Bundesland angezeigt.
-Falls der aktuelle Standort teil der Standorte ist, wird dieser immer als erstes angezeigt, somit wird auch das Bundesland als erstes aufgeführt.
-Die Reihenfolge der Standorte richtet sich nach der Reihenfolge in den übergebenen Parametern.
+Kann Informationen für bis zu 8 Standorte und Bundesländer anzeigen. Alle Standorte eines Bundeslandes werden zusammen
+mit dem jeweiligen Bundesland angezeigt. Falls der aktuelle Standort teil der Standorte ist, wird dieser immer als
+erstes angezeigt, somit wird auch das Bundesland als erstes aufgeführt. Die Reihenfolge der Standorte richtet sich nach
+der Reihenfolge in den übergebenen Parametern.
 
 Angezeigte Informationen:
 
 * **R-Wert** für Deutschland
 * **Inzidenz**, **langer Graph**, **neue Fälle**, **Impfquote*** für Deutschland.
 * **Inzidenz**, **langer Graph**, **neue Fälle** für jeden den Standort.
-* **Inzidenz**, **langer Graph**, **neue Fälle**, **Impfquote*** und **Anzahl geimpfter*** für bis zu vier unterschiedliche Bundesländer in dem die Standorte liegen.
+* **Inzidenz**, **langer Graph**, **neue Fälle**, **Impfquote*** und **Anzahl geimpfter*** für bis zu vier
+  unterschiedliche Bundesländer in dem die Standorte liegen.
 
 (*: `CFG.vaccine.show = true`)
 
