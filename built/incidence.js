@@ -2475,30 +2475,40 @@ var RequestType;
     RequestType["JSON"] = "json";
     RequestType["STRING"] = "string";
 })(RequestType || (RequestType = {}));
-class RkiService {
+class RkiService /*implements RkiServiceInterface*/ {
     constructor() {
         this.cache = new Map();
+    }
+    static async execJson(url) {
+        const req = new Request(url);
+        req.timeoutInterval = 20;
+        const data = await req.loadJSON();
+        const response = req.response;
+        if (response.statusCode !== undefined && response.statusCode === 200) {
+            return new DataResponse(data);
+        }
+        else if (response.statusCode !== undefined && response.statusCode === 404) {
+            return DataResponse.notFound('Request returned: 404 NOT FOUND');
+        }
+        else {
+            return DataResponse.error(`Unexpected status. (${response.statusCode}).`);
+        }
+    }
+    static async execString(url) {
+        const req = new Request(url);
+        req.timeoutInterval = 20;
+        const data = await req.loadString();
+        return data.length > 0 ? new DataResponse(data) : DataResponse.notFound();
     }
     async exec(url, type = RequestType.JSON) {
         try {
             const req = new Request(url);
             req.timeoutInterval = 20;
             if (type === RequestType.JSON) {
-                const data = await req.loadJSON();
-                const response = req.response;
-                if (response.statusCode !== undefined && response.statusCode === 200) {
-                    return new DataResponse(data);
-                }
-                else if (response.statusCode !== undefined && response.statusCode === 404) {
-                    return DataResponse.notFound('Request returned: 404 NOT FOUND');
-                }
-                else {
-                    return DataResponse.error(`Unexpected status. (${response.statusCode}).`);
-                }
+                return RkiService.execJson(url);
             }
             else if (type === RequestType.STRING) {
-                const data = await req.loadString();
-                return data.length > 0 ? new DataResponse(data) : DataResponse.notFound();
+                return RkiService.execString(url);
             }
             else {
                 return DataResponse.error(`Request of type '${RequestType}' are not supported.`);
@@ -2554,7 +2564,7 @@ class RkiService {
         let todayCases;
         let lastDateToday;
         let dataToday;
-        if (resToday.status === DataStatus.OK) {
+        if (resToday.status === DataStatus.OK && !resToday.isEmpty()) {
             const features = resToday.data.features ?? [];
             if (features.length > 0) {
                 todayCases = features.reduce((a, b) => a + b.attributes.cases, 0);
@@ -2570,7 +2580,7 @@ class RkiService {
             }
         }
         let dataHist = [];
-        if (resHistory.status === DataStatus.OK) {
+        if (resHistory.status === DataStatus.OK && !resHistory.isEmpty()) {
             const features = resHistory.data.features ?? [];
             if (features.length > 0) {
                 dataHist = features.map(day => {
@@ -2606,7 +2616,7 @@ class RkiService {
         const outputFields = 'GEN,RS,EWZ,EWZ_BL,BL_ID,cases,cases_per_100k,cases7_per_100k,cases7_bl_per_100k,last_update,BL,IBZ';
         const url = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_Landkreisdaten/FeatureServer/0/query?where=1%3D1&outFields=${outputFields}&geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelWithin&returnGeometry=false&outSR=4326&f=json`;
         const response = await this.execCached(url);
-        if (response.status !== DataStatus.OK) {
+        if (response.status !== DataStatus.OK || response.isEmpty()) {
             return false;
         }
         const features = response.data.features;
@@ -2626,17 +2636,18 @@ class RkiService {
     async vaccineData() {
         const url = `https://rki-vaccination-data.vercel.app/api`;
         const response = await this.execCached(url, RequestType.JSON);
-        if (response.data.states) {
-            return (response.status === DataStatus.OK) ? response.data : false;
+        if (response.status === DataStatus.OK && !response.isEmpty()) {
+            return (response.data.states) ? response.data : false;
         }
         else {
-            return console.warn(`Unexpected response format. \nurl: ${url}\nreply:${JSON.stringify(response.data)})`);
+            console.warn(`Unexpected response format. \nurl: ${url}\nreply:${JSON.stringify(response.data)})`);
+            return false;
         }
     }
     async rData() {
         const url = `https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Projekte_RKI/Nowcasting_Zahlen_csv.csv?__blob=publicationFile`;
         const response = await this.execCached(url, RequestType.STRING);
-        if (response.status === DataStatus.OK) {
+        if (response.status === DataStatus.OK && !response.isEmpty()) {
             return Format.rValue(response.data);
         }
         else {
