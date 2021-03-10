@@ -81,16 +81,6 @@ Dabei ist Folgendes zu beachten.
 * Eigener Name z.B "Home" für den ersten Standort: `0,52.022,8.522,Home`
 * Eigener Name z.B "Work" für den zweiten Standort: `1,52.514,13.380,Work`
 
-| Beispiel | Parameter|
-| --- | --- |
-| Aktueller Standort (Parameter leer)| ` `  |
-| Erster Standort statisch (SmallWidget)| `0,52.022,8.522`|
-| Zweiter Standort statisch (MediumWidget)| `1,52.022,8.522`|
-| Beide Standorte statisch (MediumWidget)| `0,52.022,8.522;1,52.514,13.380` |
-| Nur zweiter Standort ist statisch (MediumWidget)| `1,52.022,8.522` |
-| Eigener Name z.B "Home" für den ersten Standort| `0,52.022,8.522,Home` | 
-| Eigener Name z.B "Work" für den zweiten Standort| `1,52.514,13.380,Work` |
-
 # Widgets
 
 Es können drei verscheiden große Widgets angezeigt werden. Klein, Mittel und Groß. Ein kleines Widget kann Informationen
