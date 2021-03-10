@@ -2731,20 +2731,21 @@ enum FileType {
 
 interface FileManagerInterface {
     fm: FileManager;
-    configDirectory: string;
+    configDir: string;
     configPath: string;
-    copy: (from: string, to: string) => Promise<void>;
-    write: (data: any, file: string, type: FileType) => Promise<void>;
+    copy: (from: string, to: string) => void;
+    write: (data: any, file: string, type: FileType) => void;
     read: (file: string, type: FileType) => Promise<DataResponse<any>>;
 }
 
 class CustomFileManager implements FileManagerInterface {
-    configDirectory: string;
+    configDir: string;
     configPath: string;
+    scriptableDir: string;
     filestub: string;
     fm: FileManager;
 
-    constructor(directory: string, filestub: string) {
+    constructor(configDir: string, filestub: string) {
         try {
             this.fm = FileManager.iCloud();
             this.fm.documentsDirectory();
@@ -2752,30 +2753,31 @@ class CustomFileManager implements FileManagerInterface {
             console.warn(e);
             this.fm = FileManager.local();
         }
-        this.configDirectory = directory;
-        this.configPath = this.fm.joinPath(this.fm.documentsDirectory(), this.configDirectory);
+        this.configDir = configDir;
+        this.scriptableDir = this.fm.documentsDirectory();
+        this.configPath = this.fm.joinPath(this.fm.documentsDirectory(), this.configDir);
         this.filestub = filestub;
 
         if (!this.fm.isDirectory(this.configPath)) this.fm.createDirectory(this.configPath);
     }
 
-    private getAbsolutePath(relFilePath: string): string {
-        return this.fm.joinPath(this.configPath, relFilePath);
+    private getAbsolutePath(relFilePath: string, configDir: boolean = true): string {
+        return this.fm.joinPath(configDir ? this.configPath : this.scriptableDir, relFilePath);
     }
 
-    async fileExists(filePath: string): Promise<boolean> {
-        return this.fm.fileExists(this.getAbsolutePath(filePath));
+    fileExists(filePath: string, configDir: boolean = true): boolean {
+        return this.fm.fileExists(this.getAbsolutePath(filePath, configDir));
     }
 
-    async copy(from: string, to: string): Promise<void> {
-        const pathFrom = this.fm.joinPath(this.configDirectory, from);
-        const pathTo = this.fm.joinPath(this.configDirectory, to);
-        await this.fm.copy(pathFrom, pathTo);
+    copy(from: string, to: string, configDir: boolean = true): void {
+        const pathFrom = this.getAbsolutePath(from, configDir);
+        const pathTo = this.getAbsolutePath(to, configDir);
+        this.fm.copy(pathFrom, pathTo);
     }
 
-    async read(file: string, type: FileType = FileType.TEXT): Promise<DataResponse<any> | EmptyResponse> {
+    async read(file: string, type: FileType = FileType.TEXT, configDir: boolean = true): Promise<DataResponse<any> | EmptyResponse> {
         const ext = CustomFileManager.extensionByType(type);
-        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext)
+        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext, configDir);
 
         if (this.fm.isFileStoredIniCloud(path) && !this.fm.isFileDownloaded(path)) {
             await this.fm.downloadFileFromiCloud(path);
@@ -2783,7 +2785,7 @@ class CustomFileManager implements FileManagerInterface {
 
         if (this.fm.fileExists(path)) {
             try {
-                const resStr = await this.fm.readString(path);
+                const resStr = this.fm.readString(path);
 
                 if (type === FileType.JSON) {
                     return new DataResponse<object>(JSON.parse(resStr));
@@ -2800,7 +2802,7 @@ class CustomFileManager implements FileManagerInterface {
         }
     }
 
-    async write(data: any, file: string = this.filestub, type: FileType = FileType.TEXT): Promise<void> {
+    write(data: object | string, file: string = this.filestub, type: FileType = FileType.TEXT, configDir: boolean = true): void {
         let dataStr;
         if (type === FileType.JSON) {
             dataStr = JSON.stringify(data);
@@ -2810,8 +2812,16 @@ class CustomFileManager implements FileManagerInterface {
             dataStr = data
         }
         const ext = CustomFileManager.extensionByType(type);
-        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext);
+        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext, configDir);
         this.fm.writeString(path, dataStr);
+    }
+
+    remove(filePath: string, baseDir: boolean = true): void {
+        this.fm.remove(this.getAbsolutePath(filePath, baseDir));
+    }
+
+    listContents(filePath: string, configDir: boolean = true): string[] {
+        return this.fm.listContents(this.getAbsolutePath(filePath, configDir));
     }
 
     static extensionByType(type: FileType, omitDot = false): string {
