@@ -1,5 +1,7 @@
 # Corona Inzidenze Widget für iOS (Scriptable)
 
+[![build](https://github.com/TiborAdk/corona-widget-ts/actions/workflows/main.yml/badge.svg)](https://github.com/TiborAdk/corona-widget-ts/actions/workflows/main.yml)
+
 Port des ursprünglichen Widgets nach typescript.
 
 Widget zeigt die Inzidenz tägli. neue Fälle sowie den Verlauf für 21 Tage (Inzidenz/ neue Fälle) an. Basierend auf den
