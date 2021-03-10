@@ -34,7 +34,10 @@ const CFG = {
     vaccine: {
         show: true, // show the data regarding the vaccination. Small widget wont show this information.
     },
-
+    script: {
+        autoUpdate: true, // whether the script should update it self
+        autoUpdateInterval: 1, // how often the script should update it self (in days)
+    }
 }
 
 type State = {
@@ -61,6 +64,9 @@ type Env = {
     cacheCountries: Map<string, IncidenceData<MetaCountry>>,
     cacheVaccines: Map<string, VaccineData>,
     states: Map<string, State>,
+    script: {
+        filename: string,
+    }
 }
 
 const ENV: Env = {
@@ -98,6 +104,9 @@ const ENV: Env = {
         ],
     ),
     cache: new Map<any, any>(),
+    script: {
+        filename: this.module.filename.replace(/^.*[\\\/]/, ''),
+    }
 }
 
 enum DataStatus {
@@ -2731,20 +2740,21 @@ enum FileType {
 
 interface FileManagerInterface {
     fm: FileManager;
-    configDirectory: string;
+    configDir: string;
     configPath: string;
-    copy: (from: string, to: string) => Promise<void>;
-    write: (data: any, file: string, type: FileType) => Promise<void>;
+    copy: (from: string, to: string) => void;
+    write: (data: any, file: string, type: FileType) => void;
     read: (file: string, type: FileType) => Promise<DataResponse<any>>;
 }
 
 class CustomFileManager implements FileManagerInterface {
-    configDirectory: string;
+    configDir: string;
     configPath: string;
+    scriptableDir: string;
     filestub: string;
     fm: FileManager;
 
-    constructor(directory: string, filestub: string) {
+    constructor(configDir: string, filestub: string) {
         try {
             this.fm = FileManager.iCloud();
             this.fm.documentsDirectory();
@@ -2752,30 +2762,31 @@ class CustomFileManager implements FileManagerInterface {
             console.warn(e);
             this.fm = FileManager.local();
         }
-        this.configDirectory = directory;
-        this.configPath = this.fm.joinPath(this.fm.documentsDirectory(), this.configDirectory);
+        this.configDir = configDir;
+        this.scriptableDir = this.fm.documentsDirectory();
+        this.configPath = this.fm.joinPath(this.fm.documentsDirectory(), this.configDir);
         this.filestub = filestub;
 
         if (!this.fm.isDirectory(this.configPath)) this.fm.createDirectory(this.configPath);
     }
 
-    private getAbsolutePath(relFilePath: string): string {
-        return this.fm.joinPath(this.configPath, relFilePath);
+    private getAbsolutePath(relFilePath: string, configDir: boolean = true): string {
+        return this.fm.joinPath(configDir ? this.configPath : this.scriptableDir, relFilePath);
     }
 
-    async fileExists(filePath: string): Promise<boolean> {
-        return this.fm.fileExists(this.getAbsolutePath(filePath));
+    fileExists(filePath: string, configDir: boolean = true): boolean {
+        return this.fm.fileExists(this.getAbsolutePath(filePath, configDir));
     }
 
-    async copy(from: string, to: string): Promise<void> {
-        const pathFrom = this.fm.joinPath(this.configDirectory, from);
-        const pathTo = this.fm.joinPath(this.configDirectory, to);
-        await this.fm.copy(pathFrom, pathTo);
+    copy(from: string, to: string, configDir: boolean = true): void {
+        const pathFrom = this.getAbsolutePath(from, configDir);
+        const pathTo = this.getAbsolutePath(to, configDir);
+        this.fm.copy(pathFrom, pathTo);
     }
 
-    async read(file: string, type: FileType = FileType.TEXT): Promise<DataResponse<any> | EmptyResponse> {
+    async read(file: string, type: FileType = FileType.TEXT, configDir: boolean = true): Promise<DataResponse<any> | EmptyResponse> {
         const ext = CustomFileManager.extensionByType(type);
-        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext)
+        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext, configDir);
 
         if (this.fm.isFileStoredIniCloud(path) && !this.fm.isFileDownloaded(path)) {
             await this.fm.downloadFileFromiCloud(path);
@@ -2783,7 +2794,7 @@ class CustomFileManager implements FileManagerInterface {
 
         if (this.fm.fileExists(path)) {
             try {
-                const resStr = await this.fm.readString(path);
+                const resStr = this.fm.readString(path);
 
                 if (type === FileType.JSON) {
                     return new DataResponse<object>(JSON.parse(resStr));
@@ -2800,7 +2811,7 @@ class CustomFileManager implements FileManagerInterface {
         }
     }
 
-    async write(data: any, file: string = this.filestub, type: FileType = FileType.TEXT): Promise<void> {
+    write(data: object | string, file: string = this.filestub, type: FileType = FileType.TEXT, configDir: boolean = true): void {
         let dataStr;
         if (type === FileType.JSON) {
             dataStr = JSON.stringify(data);
@@ -2810,8 +2821,16 @@ class CustomFileManager implements FileManagerInterface {
             dataStr = data
         }
         const ext = CustomFileManager.extensionByType(type);
-        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext);
+        const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext, configDir);
         this.fm.writeString(path, dataStr);
+    }
+
+    remove(filePath: string, baseDir: boolean = true): void {
+        this.fm.remove(this.getAbsolutePath(filePath, baseDir));
+    }
+
+    listContents(filePath: string, configDir: boolean = true): string[] {
+        return this.fm.listContents(this.getAbsolutePath(filePath, configDir));
     }
 
     static extensionByType(type: FileType, omitDot = false): string {
@@ -2976,24 +2995,37 @@ class Helper {
         }
 
         return multiRows.getMultiRows();
+    }
 
+    static mergeConfig(target: { [k: string]: { [k: string]: any } }, source: { [k: string]: { [k: string]: any } }, skippKeys: string[] = []): void {
+        for (const key in source) {
+            if (skippKeys.includes(key)) {
+                console.log('skipping key ' + key);
+                continue;
+            }
+            if (key in target) {
+                target[key] = {...target[key], ...source[key]};
+            } else {
+                target[key] = source[key];
+            }
+        }
     }
 
     static async loadConfig() {
         const path = 'config.json';
         const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json'
-        let cfg: any = CFG;
+        let cfg: { [key: string]: { [key: string]: any } } = CFG;
 
-        if (!await cfm.fileExists(path)) {
+        if (!cfm.fileExists(path)) {
             console.log('Config file does not exist. Trying to get default config from repositoryy.');
             const req = new Request(url);
             req.timeoutInterval = 20;
 
-            const data = await req.loadJSON();
+            const data = await req.loadString();
             const response = req.response;
-            if (response.statsCode && response.statusCode === 200) {
+            if (response.statusCode && response.statusCode === 200) {
                 console.log('Config loaded from web.');
-                cfg = data;
+                cfg = JSON.parse(data);
             } else {
                 console.warn('Loading config from web failed.');
             }
@@ -3004,11 +3036,80 @@ class Helper {
                 console.log('Config loaded successfully.');
                 cfg = resp.data;
             } else {
-                console.warn('Failed reading config.');
+                console.warn('Failed reading config');
             }
         }
-        Object.assign(CFG, cfg);
 
+        Helper.mergeConfig(CFG, cfg, ['storage']);
+    }
+
+    static async updateScript() {
+        console.log('updateScript: starting');
+        const currentDate = new Date();
+        const {autoUpdateInterval, autoUpdate} = CFG.script;
+
+        if (!autoUpdate) {
+            console.log('updateScript: skipping due to config')
+            return;
+        }
+
+        let _data: { [k: string]: any } = {};
+        if (cfm.fileExists('.data.json', true)) {
+            const res = await cfm.read('.data.json', FileType.JSON, true);
+
+            if (res.status === DataStatus.OK && !res.isEmpty()) {
+                _data = res.data;
+            } else {
+                _data = {};
+            }
+        }
+
+        const lastUpdate = new Date(_data['lastUpdated'] ?? 0);
+        const nextUpdate = new Date(lastUpdate);
+        nextUpdate.setDate(nextUpdate.getDate() + autoUpdateInterval);
+
+        if (nextUpdate > currentDate) {
+            console.log(`updateScript: skip, last update less the ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago`);
+            return;
+        }
+
+        console.log('updateScript: getting new script');
+
+        const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
+        const request = new Request(url);
+        request.timeoutInterval = 10;
+
+        const script = await request.loadString();
+        const resp = request.response;
+        if (!resp.statusCode || resp.statusCode !== 200) {
+            console.warn('updateScript: aborting, error loading new script');
+            return;
+        }
+        if (script === '') {
+            console.log('updateScript: aborting, received empty script');
+            return;
+        }
+        const currentFile = ENV.script.filename;
+        const backupFile = currentFile.replace('.js', '.bak.js');
+
+        // `CustomFileManager` defaults to the baseDir.
+        // Since the script is not in it we need to set `baseDir` to `false` on any call to `cfm`
+        try {
+            if (cfm.fileExists(backupFile, false)) await cfm.remove(backupFile, false);
+            cfm.copy(currentFile, backupFile, false);
+            cfm.write(script, currentFile, FileType.TEXT, false);
+            cfm.remove(backupFile, false);
+            _data['lastUpdated'] = currentDate;
+            cfm.write(_data, '.data.json', FileType.JSON, true); // .data.json is stored in configDir
+            console.log('updateScript: script updated');
+        } catch (e) {
+            console.warn(e);
+            console.warn('updateScript: update failed, rolling back...');
+            if (cfm.fileExists(backupFile, false)) {
+                cfm.copy(backupFile, currentFile, false);
+                cfm.remove(backupFile, false);
+            }
+        }
     }
 }
 
@@ -3245,6 +3346,8 @@ class RkiService implements RkiServiceInterface {
 const cfm = new CustomFileManager(CFG.storage.directory, CFG.storage.fileStub);
 // @ts-ignore
 await Helper.loadConfig();
+// @ts-ignore
+await Helper.updateScript();
 const rkiService = new RkiService();
 
 const defaultSmall: string = '';
