@@ -26,7 +26,8 @@ von [rphl](https://github.com/rphl): [rphl/corona-widget](https://github.com/rph
 
 # Quelle/Datenbasis
 
-* Das Widget basiert auf der offiziellen Api des RKI. https://npgeo-corona-npgeo-de.hub.arcgis.com/
+* Das Widget basiert auf der offiziellen Api des RKI. https://npgeo-corona-npgeo-de.hub.arcgis.com/ \
+*Lizenz: Robert Koch-Institut (RKI), [dl-de/by-2-0](https://www.govdata.de/dl-de/by-2-0)*
 * Die bereitgestellten Daten können in bestimmten Regionen aufgrund von Meldeverzögerungen durch Ämter an das RKI (Api)
   erst verzögert (Stunden-Tage) im Widget angezeigt werden.
 * Für die Historie werden ausschließlich Daten aus der Api verwendet. Somit können sich aufgrund von

@@ -2,6 +2,8 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: red; icon-glyph: briefcase-medical;
 
+// Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
+
 const CFG = {
     storage: {
         directory: 'corona_widget_ts',
