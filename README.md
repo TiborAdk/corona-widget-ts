@@ -36,7 +36,7 @@ von [rphl](https://github.com/rphl): [rphl/corona-widget](https://github.com/rph
 
 **Manuell**
 
-* Safari öffnen: https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/built/incidence.js
+* Safari öffnen: https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js
 * Skripttext kopieren
 * Scriptable öffnen, kopierten Skripttext als neues Scriptablescript einfügen oder altes ersetzen.
 
