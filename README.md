@@ -159,6 +159,14 @@ Angezeigte Informationen:
 Die Konfiguration erfolgt über die Date **config.json** im Ordner `iCloud/Scriptable/corona_widget_ts/`. Dort können,
 falls nicht anders vermerkt, folgende Werte gesetzt werden.
 
+# cache
+
+## cache.maxAge
+
+**Beschreibung**: Maximales Alter von gespeicherten Daten, damit diese als 'noch aktuell' angesehen werden und die Daten nicht erneut vom RKI geladen werden.\
+**Werte**: `(0, ∞)` (Sekunden) \
+**Standard**: `3600` (1h)
+
 ## graph
 
 Konfiguration für die angezeigten Graphen.

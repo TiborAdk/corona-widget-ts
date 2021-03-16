@@ -1,4 +1,7 @@
 {
+  "cache": {
+    "maxAge": 3600
+  },
   "graph": {
     "maxShownDays": 28,
     "upsideDown": false,

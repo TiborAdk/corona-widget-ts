@@ -5,6 +5,9 @@
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 
 const CFG = {
+    cache: {
+        maxAge: 3600, // maximum age of items in the cache. (in seconds) Younger items wont be updated with  data from the rki-api.
+    },
     storage: {
         directory: 'corona_widget_ts',
         fileStub: 'coronaWidget_',
@@ -1950,8 +1953,12 @@ abstract class CustomData<S, T> implements DataInterface<S[], T>, Savable {
 
     abstract getStorageObject(): CustomData<S, T>;
 
+    get storageFileName(): string {
+        return `${(this.fm?.filestub ?? '') + this.id}.json`;
+    }
+
     async save(): Promise<void> {
-        await this.fm?.write(this.getStorageObject(), this.fm.filestub + this.id, FileType.JSON)
+        await this.fm?.write(this.getStorageObject(), this.storageFileName, FileType.JSON)
     }
 }
 
@@ -2019,7 +2026,22 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return new IncidenceData<T>(data.id, data.data, data.meta, location ?? data.location);
     }
 
-    static async loadAreaFromCache(loc: CustomLocation, history: boolean = true, today: boolean = true): Promise<DataResponse<IncidenceData<MetaArea>> | EmptyResponse> {
+    static async loadFromCache<T extends MetaData>(id: string, typeCheck: (data: IncidenceData<T>) => data is IncidenceData<T>, ...params: any[]): Promise<DataResponse<IncidenceData<T>> | EmptyResponse> {
+        const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
+        if (resp.status !== DataStatus.OK || resp.isEmpty()) {
+            return resp;
+        }
+        const incidenceData = IncidenceData.fromResponse<T>(resp, ...params);
+
+        if (typeCheck(incidenceData)) {
+            return DataResponse.ok(incidenceData);
+        } else {
+            return DataResponse.error('Data loaded is of wrong type');
+        }
+
+    }
+
+    static async loadAreaFromCache(loc: CustomLocation): Promise<DataResponse<IncidenceData<MetaArea>> | EmptyResponse> {
         const respId = await CustomLocation.idFromCache(loc);
         if (respId.status !== DataStatus.OK || respId.isEmpty()) {
             return DataResponse.error('Obtaining id from cache failed.');
@@ -2027,51 +2049,15 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
         const id = respId.data;
 
-        const resp = await cfm.read('coronaWidget_' + id, FileType.JSON);
-        if (!resp.succeeded() || resp.isEmpty()) {
-            return DataResponse.empty(resp.status, resp.msg);
-        }
-
-        const incidenceData = IncidenceData.fromResponse(resp, loc);
-
-        if (incidenceData.isArea()) {
-            return new DataResponse<IncidenceData<MetaArea>>(incidenceData);
-        } else {
-            return DataResponse.error('Data loaded is no Area.');
-        }
+        return await IncidenceData.loadFromCache<MetaArea>(id, IncidenceData.isArea, loc);
     }
 
-    static async loadStateFromCache(id: string, history: boolean = true, today: boolean = true): Promise<DataResponse<IncidenceData<MetaState>> | EmptyResponse> {
-        const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
-
-        if (!resp.succeeded() || resp.isEmpty()) {
-            return DataResponse.empty(resp.status, resp.msg);
-        }
-
-        const data = IncidenceData.fromResponse(resp);
-
-        if (data.isState()) {
-            return new DataResponse<IncidenceData<MetaState>>(data);
-        } else {
-            return DataResponse.error('Data loaded is no State.');
-        }
-
+    static async loadStateFromCache(id: string): Promise<DataResponse<IncidenceData<MetaState>> | EmptyResponse> {
+        return IncidenceData.loadFromCache<MetaState>(id, IncidenceData.isState);
     }
 
-    static async loadCountryFromCache(id: string, history: boolean = true, today: boolean = true): Promise<DataResponse<IncidenceData<MetaCountry>> | EmptyResponse> {
-        const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
-
-        if (!resp.succeeded() || resp.isEmpty()) {
-            return DataResponse.empty(resp.status, resp.msg);
-        }
-
-        const data = IncidenceData.fromResponse(resp);
-
-        if (data.isCountry()) {
-            return new DataResponse<IncidenceData<MetaCountry>>(data);
-        } else {
-            return DataResponse.error('Data loaded is no Country.');
-        }
+    static async loadCountryFromCache(id: string): Promise<DataResponse<IncidenceData<MetaCountry>> | EmptyResponse> {
+        return IncidenceData.loadFromCache<MetaCountry>(id, IncidenceData.isCountry);
     }
 
 
@@ -2158,8 +2144,18 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         if (cached !== undefined) {
             return new DataResponse(cached);
         }
+        const logPre = `country ${code}`;
 
         // GER DATA
+        const {cachedData, cachedAge} = await IncidenceData.loadCached(code, IncidenceData.loadCountryFromCache);
+
+        if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 3600) {
+            console.log(`${logPre}: using cached data`);
+            return DataResponse.ok(cachedData);
+        } else {
+            console.log(`${logPre}: cache lifetime exceeded`)
+        }
+
         const cases = await rkiService.casesGer();
         if (typeof cases === 'boolean') {
             return DataResponse.error();
@@ -2203,16 +2199,26 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
             }
         }
 
+        // load data from cache. If its fresh enough we return it
+        const {cachedData, cachedAge} = await IncidenceData.loadCached(location, IncidenceData.loadAreaFromCache);
+
+        if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 1000) {
+            console.log('Using cached data')
+            return DataResponse.ok(cachedData);
+        } else {
+            console.log('Cache lifetime exceeded, trying to update data...');
+        }
+
+
         // get information for area
         const info = await rkiService.locationData(location);
         if (!info) {
-            console.log(`Getting incidence data failed (${loc.latitude} ${loc.longitude}). Trying to load from cache...`);
-
-            const resp = await IncidenceData.loadAreaFromCache(location);
-            if (resp.succeeded() && !resp.isEmpty()) {
-                return DataResponse.cached(resp.data);
+            const msg = `Getting meta data failed (${loc.latitude} ${loc.longitude})`;
+            if (cachedData) {
+                console.log(`${msg}, using cached data`);
+                return DataResponse.cached(cachedData);
             } else {
-                return DataResponse.error('Loading from cache failed.');
+                return DataResponse.error(msg);
             }
         }
 
@@ -2220,13 +2226,12 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         // get cases for area
         const cases = await rkiService.casesArea(id);
         if (typeof cases === 'boolean') {
-            console.log(`Getting cases failed (${id}). Trying to load from cache...`);
-
-            const resp = await IncidenceData.loadAreaFromCache(location);
-            if (resp.succeeded() && !resp.isEmpty()) {
-                return DataResponse.cached(resp.data);
+            const msg = `Getting cases failed (${id})`;
+            if (cachedData) {
+                console.log(`${msg}, trying to use cached data`);
+                return DataResponse.cached(cachedData);
             } else {
-                return DataResponse.error('Loading from cache failed.');
+                return DataResponse.error(msg);
             }
         }
 
@@ -2255,20 +2260,30 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
 
     static async loadState(id: string, name: string, ewz: number, loadVaccine: boolean = false): Promise<DataResponse<IncidenceData<MetaState>> | EmptyResponse> {
-        const cached = ENV.cacheStates.get(id);
-        if (typeof cached !== 'undefined') {
-            return new DataResponse(cached);
+        const applicationCached = ENV.cacheStates.get(id);
+        if (typeof applicationCached !== 'undefined') {
+            return new DataResponse(applicationCached);
+        }
+
+        const logPre = `state ${id}`;
+
+        const {cachedData, cachedAge} = await this.loadCached(id, IncidenceData.loadStateFromCache);
+
+        if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 1000) {
+            console.log(`${logPre}: using cached data`)
+            return new DataResponse(cachedData);
+        } else {
+            console.log(`${logPre}: cache lifetime exceeded, trying to update data...`);
         }
 
         const cases = await rkiService.casesState(id);
         if (typeof cases === 'boolean') {
-            console.log(`Getting state failed (id: ${id}). Trying to load from cache...`);
-            const resp: DataResponse<IncidenceData<MetaState>> | EmptyResponse = await IncidenceData.loadStateFromCache(id);
-            if (resp.succeeded() && !resp.isEmpty()) {
-                return DataResponse.cached(resp.data);
+            const msg = `${logPre}: Getting state failed`;
+            console.log(`${msg}, using cached data`);
+            if (cachedData) {
+                return DataResponse.cached(cachedData);
             } else {
-                console.warn(`Loading from cache failed. (id:${id})`);
-                return DataResponse.error();
+                return DataResponse.error(msg);
             }
         }
 
@@ -2280,7 +2295,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
             if (respVac.succeeded() && !respVac.isEmpty()) {
                 vaccine = respVac.data;
             } else {
-                console.warn(`Loading vaccine data for state ${name} failed.`)
+                console.warn(`${logPre}: loading vaccine data failed.`)
             }
         }
 
@@ -2299,6 +2314,21 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
         ENV.cacheStates.set(id, data);
         return new DataResponse(data);
+    }
+
+    private static async loadCached<P extends string | CustomLocation, T extends IncidenceData<MetaArea | MetaState | MetaCountry>>(param: P, fn: (p: P) => Promise<DataResponse<T> | EmptyResponse>): Promise<{ cachedData?: T; cachedAge?: number }> {
+        const cached = await fn(param);
+
+        let cachedData: T | undefined;
+        let cachedAge: number | undefined;
+        if (!cached.isEmpty() && cached.status === DataStatus.OK) {
+            cachedData = cached.data;
+            const lastModified = cfm.modificationDate(cachedData.storageFileName);
+            cachedAge = Date.now() - (lastModified ?? new Date()).getTime();
+        } else {
+            console.log('Loading from cache failed.');
+        }
+        return {cachedData, cachedAge};
     }
 
     static isState(data: IncidenceData<MetaData>): data is IncidenceData<MetaState> {
@@ -2701,6 +2731,10 @@ class DataResponse<T> implements DataResponseInterface<T> {
         return status === DataStatus.OK || status === DataStatus.CACHED;
     }
 
+    static ok<T>(data: T, msg?: string) {
+        return new DataResponse<T>(data, DataStatus.OK, msg);
+    }
+
     static error(msg?: string): EmptyResponse {
         return DataResponse.empty(DataStatus.ERROR, msg);
     }
@@ -2829,6 +2863,10 @@ class CustomFileManager implements FileManagerInterface {
 
     remove(filePath: string, baseDir: boolean = true): void {
         this.fm.remove(this.getAbsolutePath(filePath, baseDir));
+    }
+
+    modificationDate(filePath: string, baseDir: boolean = true): Date | null {
+        return this.fm.modificationDate(this.getAbsolutePath(filePath, baseDir))
     }
 
     listContents(filePath: string, configDir: boolean = true): string[] {
@@ -3046,14 +3084,14 @@ class Helper {
     }
 
     static async updateScript() {
-        console.log('updateScript: starting');
         const currentDate = new Date();
         const {autoUpdateInterval, autoUpdate} = CFG.script;
 
         if (!autoUpdate) {
-            console.log('updateScript: skipping due to config')
+            console.log('updateScript: skip (disabled)')
             return;
         }
+        console.log('updateScript: start updated');
 
         let _data: { [k: string]: any } = {};
         if (cfm.fileExists('.data.json', true)) {
@@ -3071,7 +3109,7 @@ class Helper {
         nextUpdate.setDate(nextUpdate.getDate() + autoUpdateInterval);
 
         if (nextUpdate > currentDate) {
-            console.log(`updateScript: skip, last update less the ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago`);
+            console.log(`updateScript: skip (last update less the ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
             return;
         }
 
@@ -3084,11 +3122,11 @@ class Helper {
         const script = await request.loadString();
         const resp = request.response;
         if (!resp.statusCode || resp.statusCode !== 200) {
-            console.warn('updateScript: aborting, error loading new script');
+            console.warn('updateScript: aborting (error loading new script)');
             return;
         }
         if (script === '') {
-            console.log('updateScript: aborting, received empty script');
+            console.log('updateScript: aborting (received empty script)');
             return;
         }
         const currentFile = ENV.script.filename;
