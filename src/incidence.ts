@@ -1181,7 +1181,7 @@ class AreaRowStack extends IncidenceRowStackBase {
         });
 
         // Incidence (font 26, smaller 18)
-        this.incidenceContainer = new IncidenceContainer(row0.addStack(), undefined, CustomFont.boldMono(26), -6, undefined, CustomFont.boldRounded(20), new Size(72, 0));
+        this.incidenceContainer = new IncidenceContainer(row0.addStack(), undefined, CustomFont.boldMono(25), -6, undefined, CustomFont.boldRounded(20), new Size(76, 0));
 
         const bgColor: ColorValue = elemDepth ? UI.elementDepth2BgColor(elemDepth) : '#99999920';
 

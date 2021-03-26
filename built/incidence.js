@@ -1,7 +1,11 @@
 // Variables used by Scriptable.
 // These must be at the very top of the file. Do not edit.
 // icon-color: red; icon-glyph: briefcase-medical;
+// Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 const CFG = {
+    cache: {
+        maxAge: 3600,
+    },
     storage: {
         directory: 'corona_widget_ts',
         fileStub: 'coronaWidget_',
@@ -863,7 +867,7 @@ class AreaRowStack extends IncidenceRowStackBase {
             padding: padding,
         });
         // Incidence (font 26, smaller 18)
-        this.incidenceContainer = new IncidenceContainer(row0.addStack(), undefined, CustomFont.boldMono(26), -6, undefined, CustomFont.boldRounded(20), new Size(72, 0));
+        this.incidenceContainer = new IncidenceContainer(row0.addStack(), undefined, CustomFont.boldMono(25), -6, undefined, CustomFont.boldRounded(20), new Size(76, 0));
         const bgColor = elemDepth ? UI.elementDepth2BgColor(elemDepth) : '#99999920';
         // Name
         let nameStack;
@@ -1499,8 +1503,11 @@ class CustomData {
     static getMaxFromArrayOfObjectsByIndex(data, index) {
         return Math.max(...data.map(value => value[index] ?? 0));
     }
+    get storageFileName() {
+        return `${(this.fm?.filestub ?? '') + this.id}.json`;
+    }
     async save() {
-        await this.fm?.write(this.getStorageObject(), this.fm.filestub + this.id, FileType.JSON);
+        await this.fm?.write(this.getStorageObject(), this.storageFileName, FileType.JSON);
     }
 }
 class IncidenceData extends CustomData {
@@ -1553,49 +1560,32 @@ class IncidenceData extends CustomData {
         const data = response.data;
         return new IncidenceData(data.id, data.data, data.meta, location ?? data.location);
     }
-    static async loadAreaFromCache(loc, history = true, today = true) {
+    static async loadFromCache(id, typeCheck, ...params) {
+        const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
+        if (resp.status !== DataStatus.OK || resp.isEmpty()) {
+            return resp;
+        }
+        const incidenceData = IncidenceData.fromResponse(resp, ...params);
+        if (typeCheck(incidenceData)) {
+            return DataResponse.ok(incidenceData);
+        }
+        else {
+            return DataResponse.error('Data loaded is of wrong type');
+        }
+    }
+    static async loadAreaFromCache(loc) {
         const respId = await CustomLocation.idFromCache(loc);
         if (respId.status !== DataStatus.OK || respId.isEmpty()) {
             return DataResponse.error('Obtaining id from cache failed.');
         }
         const id = respId.data;
-        const resp = await cfm.read('coronaWidget_' + id, FileType.JSON);
-        if (!resp.succeeded() || resp.isEmpty()) {
-            return DataResponse.empty(resp.status, resp.msg);
-        }
-        const incidenceData = IncidenceData.fromResponse(resp, loc);
-        if (incidenceData.isArea()) {
-            return new DataResponse(incidenceData);
-        }
-        else {
-            return DataResponse.error('Data loaded is no Area.');
-        }
+        return await IncidenceData.loadFromCache(id, IncidenceData.isArea, loc);
     }
-    static async loadStateFromCache(id, history = true, today = true) {
-        const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
-        if (!resp.succeeded() || resp.isEmpty()) {
-            return DataResponse.empty(resp.status, resp.msg);
-        }
-        const data = IncidenceData.fromResponse(resp);
-        if (data.isState()) {
-            return new DataResponse(data);
-        }
-        else {
-            return DataResponse.error('Data loaded is no State.');
-        }
+    static async loadStateFromCache(id) {
+        return IncidenceData.loadFromCache(id, IncidenceData.isState);
     }
-    static async loadCountryFromCache(id, history = true, today = true) {
-        const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
-        if (!resp.succeeded() || resp.isEmpty()) {
-            return DataResponse.empty(resp.status, resp.msg);
-        }
-        const data = IncidenceData.fromResponse(resp);
-        if (data.isCountry()) {
-            return new DataResponse(data);
-        }
-        else {
-            return DataResponse.error('Data loaded is no Country.');
-        }
+    static async loadCountryFromCache(id) {
+        return IncidenceData.loadFromCache(id, IncidenceData.isCountry);
     }
     static completeHistory(data, offset, last) {
         offset = offset ?? CFG.graph.maxShownDays + 7;
@@ -1665,7 +1655,16 @@ class IncidenceData extends CustomData {
         if (cached !== undefined) {
             return new DataResponse(cached);
         }
+        const logPre = `country ${code}`;
         // GER DATA
+        const { cachedData, cachedAge } = await IncidenceData.loadCached(code, IncidenceData.loadCountryFromCache);
+        if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 3600) {
+            console.log(`${logPre}: using cached data`);
+            return DataResponse.ok(cachedData);
+        }
+        else {
+            console.log(`${logPre}: cache lifetime exceeded`);
+        }
         const cases = await rkiService.casesGer();
         if (typeof cases === 'boolean') {
             return DataResponse.error();
@@ -1705,29 +1704,38 @@ class IncidenceData extends CustomData {
                 return DataResponse.error('Loading from cache failed.');
             }
         }
+        // load data from cache. If its fresh enough we return it
+        const { cachedData, cachedAge } = await IncidenceData.loadCached(location, IncidenceData.loadAreaFromCache);
+        if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 1000) {
+            console.log('Using cached data');
+            return DataResponse.ok(cachedData);
+        }
+        else {
+            console.log('Cache lifetime exceeded, trying to update data...');
+        }
         // get information for area
         const info = await rkiService.locationData(location);
         if (!info) {
-            console.log(`Getting incidence data failed (${loc.latitude} ${loc.longitude}). Trying to load from cache...`);
-            const resp = await IncidenceData.loadAreaFromCache(location);
-            if (resp.succeeded() && !resp.isEmpty()) {
-                return DataResponse.cached(resp.data);
+            const msg = `Getting meta data failed (${loc.latitude} ${loc.longitude})`;
+            if (cachedData) {
+                console.log(`${msg}, using cached data`);
+                return DataResponse.cached(cachedData);
             }
             else {
-                return DataResponse.error('Loading from cache failed.');
+                return DataResponse.error(msg);
             }
         }
         const id = info.RS;
         // get cases for area
         const cases = await rkiService.casesArea(id);
         if (typeof cases === 'boolean') {
-            console.log(`Getting cases failed (${id}). Trying to load from cache...`);
-            const resp = await IncidenceData.loadAreaFromCache(location);
-            if (resp.succeeded() && !resp.isEmpty()) {
-                return DataResponse.cached(resp.data);
+            const msg = `Getting cases failed (${id})`;
+            if (cachedData) {
+                console.log(`${msg}, trying to use cached data`);
+                return DataResponse.cached(cachedData);
             }
             else {
-                return DataResponse.error('Loading from cache failed.');
+                return DataResponse.error(msg);
             }
         }
         const meta = {
@@ -1750,20 +1758,28 @@ class IncidenceData extends CustomData {
         return new DataResponse(data);
     }
     static async loadState(id, name, ewz, loadVaccine = false) {
-        const cached = ENV.cacheStates.get(id);
-        if (typeof cached !== 'undefined') {
-            return new DataResponse(cached);
+        const applicationCached = ENV.cacheStates.get(id);
+        if (typeof applicationCached !== 'undefined') {
+            return new DataResponse(applicationCached);
+        }
+        const logPre = `state ${id}`;
+        const { cachedData, cachedAge } = await this.loadCached(id, IncidenceData.loadStateFromCache);
+        if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 1000) {
+            console.log(`${logPre}: using cached data`);
+            return new DataResponse(cachedData);
+        }
+        else {
+            console.log(`${logPre}: cache lifetime exceeded, trying to update data...`);
         }
         const cases = await rkiService.casesState(id);
         if (typeof cases === 'boolean') {
-            console.log(`Getting state failed (id: ${id}). Trying to load from cache...`);
-            const resp = await IncidenceData.loadStateFromCache(id);
-            if (resp.succeeded() && !resp.isEmpty()) {
-                return DataResponse.cached(resp.data);
+            const msg = `${logPre}: Getting state failed`;
+            console.log(`${msg}, using cached data`);
+            if (cachedData) {
+                return DataResponse.cached(cachedData);
             }
             else {
-                console.warn(`Loading from cache failed. (id:${id})`);
-                return DataResponse.error();
+                return DataResponse.error(msg);
             }
         }
         name = ENV.states.get(id)?.name ?? name;
@@ -1774,7 +1790,7 @@ class IncidenceData extends CustomData {
                 vaccine = respVac.data;
             }
             else {
-                console.warn(`Loading vaccine data for state ${name} failed.`);
+                console.warn(`${logPre}: loading vaccine data failed.`);
             }
         }
         const short = ENV.states.get(id)?.short ?? id;
@@ -1790,6 +1806,20 @@ class IncidenceData extends CustomData {
         await data.save();
         ENV.cacheStates.set(id, data);
         return new DataResponse(data);
+    }
+    static async loadCached(param, fn) {
+        const cached = await fn(param);
+        let cachedData;
+        let cachedAge;
+        if (!cached.isEmpty() && cached.status === DataStatus.OK) {
+            cachedData = cached.data;
+            const lastModified = cfm.modificationDate(cachedData.storageFileName);
+            cachedAge = Date.now() - (lastModified ?? new Date()).getTime();
+        }
+        else {
+            console.log('Loading from cache failed.');
+        }
+        return { cachedData, cachedAge };
     }
     static isState(data) {
         return IncidenceData.isMetaState(data.meta);
@@ -2104,6 +2134,9 @@ class DataResponse {
     static isSuccess(status) {
         return status === DataStatus.OK || status === DataStatus.CACHED;
     }
+    static ok(data, msg) {
+        return new DataResponse(data, DataStatus.OK, msg);
+    }
     static error(msg) {
         return DataResponse.empty(DataStatus.ERROR, msg);
     }
@@ -2206,6 +2239,9 @@ class CustomFileManager {
     }
     remove(filePath, baseDir = true) {
         this.fm.remove(this.getAbsolutePath(filePath, baseDir));
+    }
+    modificationDate(filePath, baseDir = true) {
+        return this.fm.modificationDate(this.getAbsolutePath(filePath, baseDir));
     }
     listContents(filePath, configDir = true) {
         return this.fm.listContents(this.getAbsolutePath(filePath, configDir));
@@ -2408,13 +2444,13 @@ class Helper {
         Helper.mergeConfig(CFG, cfg, ['storage']);
     }
     static async updateScript() {
-        console.log('updateScript: starting');
         const currentDate = new Date();
         const { autoUpdateInterval, autoUpdate } = CFG.script;
         if (!autoUpdate) {
-            console.log('updateScript: skipping due to config');
+            console.log('updateScript: skip (disabled)');
             return;
         }
+        console.log('updateScript: start updated');
         let _data = {};
         if (cfm.fileExists('.data.json', true)) {
             const res = await cfm.read('.data.json', FileType.JSON, true);
@@ -2429,7 +2465,7 @@ class Helper {
         const nextUpdate = new Date(lastUpdate);
         nextUpdate.setDate(nextUpdate.getDate() + autoUpdateInterval);
         if (nextUpdate > currentDate) {
-            console.log(`updateScript: skip, last update less the ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago`);
+            console.log(`updateScript: skip (last update less the ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
             return;
         }
         console.log('updateScript: getting new script');
@@ -2439,11 +2475,11 @@ class Helper {
         const script = await request.loadString();
         const resp = request.response;
         if (!resp.statusCode || resp.statusCode !== 200) {
-            console.warn('updateScript: aborting, error loading new script');
+            console.warn('updateScript: aborting (error loading new script)');
             return;
         }
         if (script === '') {
-            console.log('updateScript: aborting, received empty script');
+            console.log('updateScript: aborting (received empty script)');
             return;
         }
         const currentFile = ENV.script.filename;
