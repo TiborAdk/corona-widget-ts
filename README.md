@@ -40,6 +40,7 @@ von [rphl](https://github.com/rphl): [rphl/corona-widget](https://github.com/rph
 * Safari öffnen: https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js
 * Skripttext kopieren
 * Scriptable öffnen, kopierten Skripttext als neues Scriptablescript einfügen oder altes ersetzen.
+* Standardmäßig aktualisiert sich das Skript danach von alleine.
 
 # Konfiguration
 
@@ -154,136 +155,21 @@ Angezeigte Informationen:
 
 (*: `CFG.vaccine.show = true`)
 
+## Status
+
+Das Widget zeigt unterschiedliche Icons abhängig vom Status des angezeigten Standortes an.
+
+* Aktueller Standort
+  * `📍`: keine Probleme
+  * `📡`: kein GPS, kein Internet oder Probleme mit der API des RKIs. (Es werden die lokal gespeicherten Daten verwendet.)
+  
+* Fester Standort 
+  * ` `: keine Probleme
+  * `💾`: kein Internet oder Probleme mit der API des RKIs. (Es werden die lokal gespeicherten Daten verwendet.)
+  
+
 # Erweiterte Konfiguration
 
-Die Konfiguration erfolgt über die Date **config.json** im Ordner `iCloud/Scriptable/corona_widget_ts/`. Dort können,
-falls nicht anders vermerkt, folgende Werte gesetzt werden.
-
-# cache
-
-## cache.maxAge
-
-**Beschreibung**: Maximales Alter von gespeicherten Daten, damit diese als 'noch aktuell' angesehen werden und die Daten nicht erneut vom RKI geladen werden.\
-**Werte**: `(0, ∞)` (Sekunden) \
-**Standard**: `3600` (1h)
-
-## graph
-
-Konfiguration für die angezeigten Graphen.
-
-### graph.maxShownDays
-
-**Beschreibung**: Maximal angezeigte Werte pro Graph. \
-**Werte**: `(7, ∞)` \
-**Standard**: `28` \
-*Die tatsächliche Anzahl angezeigter Werte kann geringer sein, da der Graph den zur verfügung stehenden Platz
-berücksichtigt.*
-
-### graph.upsideDown
-
-**Beschreibung**: Graphen werden kopfüber angezeigt werden sollen. (0 oben und maximal Wert unten.) \
-**Werte**: `true`|`false` \
-**Standard**: `false`
-
-## widget
-
-Werte zur konfiguration des angezeigten Widgets.
-
-### widget.refreshInterval
-
-**Beschreibung**: Interval, indem das Widget aktualisiert wird. (In Sekunden) \
-**Werte**: `(0, ∞)` \
-**Standard** `3600` (1h)
-
-### widget.openUrl
-
-**Beschreibung**: Zu öffnende Url, wenn `CFG.widget.openUrlOnTap` = `true`. \
-**Werte**: `Url`\
-**Standard**: `https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4` \
-*Standardwert ist das Corona-Dashbor des RKIs.*
-
-### widget.openUrlOnTap
-
-**Beschreibung**: Kontrolliert, ob die Url in `CFG.widget.oenUrl`, beim Drücken auf das Widget geöffnet werden soll. \
-**Werte**: `true`|`false` \
-**Standard**: `false`
-
-### widget.alternateLarge
-
-**Beschreibung**: Aktiviert die Alternative Darstellung des großen Widgets (large)\
-**Werte**: `true`|`false` \
-**Standard**: `false` \
-*Im großen Widget werden alle Städte, Landkreise, etc eines Bundeslandes zusammen mit dem Bundesland zusammengefasst
-dargestellt. Hierbei könne bis zu 8 Zeilen, inklusive der Bundesländer angezeigt werden.*
-
-## api
-
-### api.csvRvalueField
-
-**Beschreibung**: Array von möglichen Namen, des Feldes für den gesuchten R-Wert.\
-**Werte**: `string[]` \
-**Standard**: `['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes']`
-
-## storage
-
-**!!! Kann **nicht** über die Konfigurationsdatei eingestellt werden.** Gespeicherte änderungen werden beim Laden der
-Konfiguration ignoriert.\
-Einstellungen müssen direkt im Script über die Konstante `CFG` vorgenommen werden.\
-Beispiel:
-
-  ```javascript
-  // incidence.js
-const CFG = {
-  storage: {
-    directory: 'my_awesome_dir',
-    fileStub: 'my_awesome_filestub',
-  },
-  ...
-}
-```
-
-### storage.directory
-
-**Beschreibung**: Ordner, in dem zwischengespeicherte Werte abgelegt werden. Wenn der Ordner nicht existiert, wird
-dieser erstellt.\
-**Werte**: `string` \
-**Standard**: `'corona_widget_ts'` \
-*Kann nicht über Konfigurationsdatei gesetzt werden. (Einstellungen über `CFG` im Script).*
-
-### storage.fileStub
-
-**Beschreibung**: \
-**Werte**: `string` \
-**Standard**: `coronaWidget_` \
-*Kann nicht über Konfigurationsdatei gesetzt werden. (Einstellungen über `CFG` im Script).*
-
-## state
-
-### state.useShortName
-
-**Beschreibung**: Kontrolliert, ob für Bundesländer standardmäßig die Abkürzung verwendet werden soll. \
-**Werte**: `true`|`false` \
-**Standard**: `false`
-
-## incidence
-
-### incidence.disableLive
-
-**Beschreibung**: Standardmäßig wird der Inzidenzwert des aktuellen Tages aus den aktuellen Daten berechnet. Anstelle
-dessen kann der Inzidenzwert der API angezeigt werden, sofern dieser ausgegeben wird.\
-**Werte**: `true`|`false` \
-**Standard**: `false`
-
-## script
-
-### script.autoUpdate
-
-**Beschreibung**: Kontrolliert, ob das Script automatisch aktualisiert werden soll.\
-**Werte**: `true`|`false` \
-**Standard**: `true`
-
-### script.autoUpdateInterval
-
-**Beschreibung**: Abstand in Tagen, in dem das Script eine neue Version aus dem Repository laden soll.
-**Werte**: `(0, ∞)` \
-**Standard**: `1` (1 Tag)
+Die Konfiguration erfolgt über die Date **config.json** im Ordner `iCloud/Scriptable/corona_widget_ts/`.
+Über die Datei können verschiedene Eigenschaften des Skriptes angepasst werden. \
+Nähere Informationnen dazu finden sich [hier](doc/config.md)
