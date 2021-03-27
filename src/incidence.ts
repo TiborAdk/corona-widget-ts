@@ -850,11 +850,16 @@ class IncidenceContainer extends CustomWidgetStack {
         this.part0.textColor = color;
         this.part1.textColor = color;
         if (incidence) {
-            const num = Math.floor(incidence);
-            const decimal = Math.abs(incidence) - num;
+            if (Math.round(incidence) < 100) {
+                const num = Math.floor(incidence);
+                const decimal = Math.abs(incidence) - num;
 
-            this.part0.text = '' + num;
-            this.part1.text = decimal > 0 ? Format.number(decimal, 1).substring(1) : '';
+                this.part0.text = '' + num;
+                this.part1.text = decimal > 0 ? Format.number(decimal, 1).substring(1) : '';
+            }else{
+                this.part0.text = '' + Math.round(incidence);
+                this.part1.text = ''
+            }
         } else {
             this.part0.text = 'n/v';
             this.part1.text = '';
@@ -992,7 +997,7 @@ class SmallIncidenceRowStack extends IncidenceVaccineRowStackBase {
         const hb = 12;
 
         const width = 145;
-        const wl = 75;
+        const wl = 76;
         const spacing = 5;
         const wr = width - wl - spacing;
 
@@ -1181,7 +1186,7 @@ class AreaRowStack extends IncidenceRowStackBase {
         });
 
         // Incidence (font 26, smaller 18)
-        this.incidenceContainer = new IncidenceContainer(row0.addStack(), undefined, CustomFont.boldMono(25), -6, undefined, CustomFont.boldRounded(20), new Size(76, 0));
+        this.incidenceContainer = new IncidenceContainer(row0.addStack(), undefined, CustomFont.boldMono(26), -6, undefined, CustomFont.boldRounded(20), new Size(72, 0));
 
         const bgColor: ColorValue = elemDepth ? UI.elementDepth2BgColor(elemDepth) : '#99999920';
 
@@ -1370,7 +1375,7 @@ class MultiAreaRowStack extends CustomWidgetStack {
 abstract class ListStack<S, T> extends CustomWidgetStack {
     protected items: T[];
     protected widgetSize: WidgetSize;
-    protected maxLength?: number;
+    protected maxLength?: number;A
     protected dynamicSpacing: boolean;
 
     get length(): number {
