@@ -4,7 +4,7 @@
 
 Port des ursprünglichen Widgets nach typescript.
 
-Widget zeigt die Inzidenz tägli. neue Fälle sowie den Verlauf für 21 Tage (Inzidenz/ neue Fälle) an. Basierend auf den
+Widget zeigt die Inzidenz tägliche neue Fälle sowie den Verlauf für 21 Tage (Inzidenz/ neue Fälle) an. Basierend auf den
 Daten des Robert-Koch-Instituts.
 
 Mein ursprüngliches Repository (js): [TiborAdk/corona-widget](https://github.com/TiborAdk/corona-widget)
@@ -35,12 +35,16 @@ von [rphl](https://github.com/rphl): [rphl/corona-widget](https://github.com/rph
 
 # Installation/Update
 
+Diese Script benötigt die App [Scriptable](https://apps.apple.com/de/app/scriptable/id1405459188?l=en).
+
 **Manuell**
 
-* Safari öffnen: https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js
+* Safari öffnen: https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/installer.js
 * Skripttext kopieren
 * Scriptable öffnen, kopierten Skripttext als neues Scriptablescript einfügen oder altes ersetzen.
-* Standardmäßig aktualisiert sich das Skript danach von alleine.
+* Das skirpt einmal ausführen. (Der Installer lädt das eigentliche Skript für das Widget und ersetzt sich durch dieses.)
+* Widget auf dem Homescreen hinzufügen
+* Skript für das Widget auswählen und Parameter eingeben.
 
 # Konfiguration
 
