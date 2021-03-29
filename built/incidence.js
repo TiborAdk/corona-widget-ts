@@ -522,7 +522,8 @@ class CustomListWidget extends StackLikeWrapper {
             this.size = WidgetSize.LARGE;
         }
         else {
-            throw `count must not be larger than 6 (is: ${count})`;
+            this.size = WidgetSize.LARGE;
+            console.warn(`count larger than 6 (${count})`);
         }
     }
     presentLarge() {
@@ -1234,7 +1235,7 @@ class IncidenceListWidget extends CustomListWidget {
             this.areaListStack.addMultiAreas(multiRows, graphMinMax);
         }
         else if (this.isLarge() && !this.alternateLarge) {
-            this.addAreas(areaRows, graphMinMax);
+            this.addAreas(areaRows.slice(0, 6), graphMinMax);
             this.addStates(states);
         }
         else {
@@ -2717,8 +2718,8 @@ await Helper.updateScript();
 const rkiService = new RkiService();
 const defaultSmall = '';
 const defaultMedium = '0;1,52.02,8.54';
-const defaultLarge = '0;1,52.02,8.54; 2,48.11,11.60; 3,50.33,8.75; 4,48.78,9.19; 5,50.11,8.67; 6,48.89,8.70';
-const widget = new IncidenceListWidget(args.widgetParameter ?? defaultMedium, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge);
+const defaultLarge = '0; 1,52.02,8.54; 2,48.11,11.60; 3,50.94,7.00; 4,50.11,8.67; 5,48.78,9.19; 6,51.22,6.77';
+const widget = new IncidenceListWidget(args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge);
 // @ts-ignore
 Script.setWidget(await widget.init());
 Script.complete();

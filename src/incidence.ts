@@ -742,7 +742,8 @@ abstract class CustomListWidget extends StackLikeWrapper<ListWidget> implements 
         } else if (count <= 6) {
             this.size = WidgetSize.LARGE;
         } else {
-            throw `count must not be larger than 6 (is: ${count})`;
+            this.size = WidgetSize.LARGE;
+            console.warn(`count larger than 6 (${count})`);
         }
     }
 
@@ -856,7 +857,7 @@ class IncidenceContainer extends CustomWidgetStack {
 
                 this.part0.text = '' + num;
                 this.part1.text = decimal > 0 ? Format.number(decimal, 1).substring(1) : '';
-            }else{
+            } else {
                 this.part0.text = '' + Math.round(incidence);
                 this.part1.text = ''
             }
@@ -1375,7 +1376,8 @@ class MultiAreaRowStack extends CustomWidgetStack {
 abstract class ListStack<S, T> extends CustomWidgetStack {
     protected items: T[];
     protected widgetSize: WidgetSize;
-    protected maxLength?: number;A
+    protected maxLength?: number;
+    A
     protected dynamicSpacing: boolean;
 
     get length(): number {
@@ -1633,7 +1635,7 @@ class IncidenceListWidget extends CustomListWidget {
             const multiRows = Helper.aggregateToMultiRows(areaRows, states, 10);
             this.areaListStack.addMultiAreas(multiRows, graphMinMax);
         } else if (this.isLarge() && !this.alternateLarge) {
-            this.addAreas(areaRows, graphMinMax);
+            this.addAreas(areaRows.slice(0,6), graphMinMax);
             this.addStates(states);
         } else {
             this.addAreas(areaRows, graphMinMax);
@@ -3415,9 +3417,9 @@ const rkiService = new RkiService();
 
 const defaultSmall: string = '';
 const defaultMedium: string = '0;1,52.02,8.54';
-const defaultLarge: string = '0;1,52.02,8.54; 2,48.11,11.60; 3,50.33,8.75; 4,48.78,9.19; 5,50.11,8.67; 6,48.89,8.70';
+const defaultLarge: string = '0; 1,52.02,8.54; 2,48.11,11.60; 3,50.94,7.00; 4,50.11,8.67; 5,48.78,9.19; 6,51.22,6.77';
 
-const widget = new IncidenceListWidget(args.widgetParameter ?? defaultMedium, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge);
+const widget = new IncidenceListWidget(args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge);
 // @ts-ignore
 Script.setWidget(await widget.init());
 Script.complete();
