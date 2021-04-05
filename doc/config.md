@@ -1,39 +1,41 @@
 # Corona-Widget erweiterte Konfiguration
 
-Das Widget kann über die Datei `config.json` im Ordner des Widgets konfiguriert werden. Fall die Datei nicht existiert,
-wird sie beim Ausführen des Widgets erstellt.
+Das Widget kann über die Datei `config.json` im Ordner des Widgets konfiguriert werden. Falls die Datei nicht existiert,
+wird sie beim Ausführen des Widgets erstellt und mit einem leeren Object gefüllt.
+Es reicht wenn nur Werte eingetragen werden, die von den [Standardwerten](../config.json) abweichen.
 
 # Speicherort
 
 Die Datei befindet sich im selben Ordner, in dem auch die Daten für die Standorte zwischengespeichert werden.
 Standardmäßig ist sie damit im Ordner `iCloudDrive/Scriptable/corona_widget_ts/` zu finden.
 
-Die Datei kann zum Beispiel mit [Jayson]() oder [Kodex](https://apps.apple.com/us/app/kodex/id1038574481) bearbeitet werden.
+Die Datei kann zum Beispiel mit [Jayson](https://apps.apple.com/de/app/jayson/id1447750768) oder bearbeitet werden.
 
 # Cache
 
-```
+``` json
     "cache": {
         "maxAge": 3600
     },
 ```
 
-Die `cache` Einstellungen beinhalten Einstellungen die das cachen von Daten beeinflussen
+Die `cache` Einstellungen beinhalten Einstellungen die das Zwischenspeichern von Daten beeinflussen
 
 ## maxAge
 
 Eine positive ganze Zahl, die die maximale Zeit in Sekunden beschreibt, in der gespeicherte Daten wiederverwendet werden
-können, bevor die Daten erneut von der API abgerufen werden. 0 deaktiviert das cachen von Daten und sie werden, immer
+können, bevor die Daten erneut von der API abgerufen werden. 0 deaktiviert das Zwischenspeichern von Daten und sie werden, immer
 neu von der API geladen.
 
 * Deaktiviert: `0`
 * Standard: `3600` (1h)
 
 # Graph
+
 Die `graph` Einstellungen nehmen Einfluss auf das Aussehen und die Anzahl angezeigter Werte in den verwendeten Graphen
 aller Widgets.
 
-```
+```json
     "graph": {
     "maxShownDays": 28,
     "upsideDown": false,
@@ -58,7 +60,7 @@ Bestimmt, ob die Graphen kopfüber angezeigt werden sollen. (Werte werden quasi 
 
 Die `widget` Einstellungen beeinflussen das Allgemeine Verhalten von Widgets.
 
-```
+```json
     "widget": {
         "refreshInterval": 3600,
         "openUrl": "https://corona.rki.de",
@@ -97,9 +99,9 @@ Bestimmt, ob bei großen Widgets die alternative Anzeige From verwendet werden s
 
 # Script
 
-Die `script` Einstellungen, kontrollieren das Allgemeine Verhalten des Scriptes.
+Die `script` Einstellungen, kontrollieren das Allgemeine Verhalten des Skriptes.
 
-```
+```json
     "script": {
         "scriptAutoUpdate": true
     }, 
@@ -118,14 +120,13 @@ Eine positive Zahl, die das Zeitintervall in Tagen bestimmt, in dem das Script v
 
 * Standard: `1` (1 Tag)
 
-
 # Storage
 
 Die `storage` Einstellungen beeinflussen, den Speicherort der zwischengespeicherten Dateien und wie diese benannt werden. \
 **ACHTUNG**: Diese Einstellungen können **NICHT** über die Konfigurationsdatei geändert werden, sondern nur direkt im Skript. \
 **ACHTUNG**: Die Werte werden durch ein Update des Skriptes auf den Standardwert des Skriptes gesetzt. Es ist ratsam diese Einstellungen nicht zu ändern!
 
-```
+```json
     "storage": {
         "directory": "corona_widget_ts",
         "fileStub": "coronaWidget_"

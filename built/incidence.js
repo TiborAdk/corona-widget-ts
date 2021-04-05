@@ -4,7 +4,7 @@
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 const CFG = {
     cache: {
-        maxAge: 3600,
+        maxAge: 3600, // maximum age of items in the cache. (in seconds) Younger items wont be updated with  data from the rki-api.
     },
     storage: {
         directory: 'corona_widget_ts',
@@ -13,32 +13,32 @@ const CFG = {
     graph: {
         maxShownDays: 28,
         upsideDown: false,
-        showIndex: 'incidence',
+        showIndex: 'incidence', // values used for the graph. 'cases' for cases or 'incidence' for incidence
     },
     api: {
-        csvRvalueField: ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes'],
+        csvRvalueField: ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes'], // numbered field (column), because of possible encoding changes in columns names on each update
     },
     widget: {
         refreshInterval: 3600,
         openUrlOnTap: false,
         openUrl: "https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4",
-        alternateLarge: true,
+        alternateLarge: false, // use alternative layout ofr large stack
     },
     state: {
-        useShortName: true,
+        useShortName: true, // use short name of stateRow
     },
     incidence: {
         disableLive: false // use the incidence value from the api
     },
     geoCache: {
-        accuracy: 2,
+        accuracy: 2, // accuracy the gps staticCoords are cached with (0: 111 Km; 1: 11,1 Km; 2: 1,11 Km; 3: 111 m; 4: 11,1 m)
     },
     vaccine: {
-        show: true,
+        show: true, // show the data regarding the vaccination. Small widget wont show this information.
     },
     script: {
         autoUpdate: true,
-        autoUpdateInterval: 1,
+        autoUpdateInterval: 1, // how often the script should update it self (in days)
     }
 };
 var AreaType;
@@ -59,7 +59,7 @@ const ENV = {
         [42, AreaType.K],
         [43, AreaType.LK],
         [45, AreaType.SV_K],
-        [46, AreaType.SV_LK],
+        [46, AreaType.SV_LK], // Sonderverband offiziell Landkreis
     ]),
     cacheAreas: new Map(),
     cacheCountries: new Map(),
@@ -2405,9 +2405,9 @@ class Helper {
         }
         return multiRows.getMultiRows();
     }
-    static mergeConfig(target, source, skippKeys = []) {
+    static mergeConfig(target, source, skipKeys = []) {
         for (const key in source) {
-            if (skippKeys.includes(key)) {
+            if (skipKeys.includes(key)) {
                 console.log('skipping key ' + key);
                 continue;
             }
@@ -2419,36 +2419,47 @@ class Helper {
             }
         }
     }
-    static async loadConfig() {
-        const path = 'config.json';
-        const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
-        let cfg = CFG;
-        if (!cfm.fileExists(path)) {
-            console.log('Config file does not exist. Trying to get default config from repositoryy.');
-            const req = new Request(url);
-            req.timeoutInterval = 20;
-            const data = await req.loadString();
-            const response = req.response;
-            if (response.statusCode && response.statusCode === 200) {
-                console.log('Config loaded from web.');
-                cfg = JSON.parse(data);
+    static async loadConfig(path = 'config.json', path_default = '.default.json') {
+        if (!cfm.fileExists(path_default)) {
+            console.warn('default config not found');
+        }
+        else {
+            const resp = await cfm.read(path_default, FileType.JSON);
+            if (resp.status === DataStatus.OK && !resp.isEmpty()) {
+                const cfg_default = resp.data;
+                Helper.mergeConfig(CFG, cfg_default, ['storage']);
             }
             else {
-                console.warn('Loading config from web failed.');
+                console.warn('error reading defaults');
             }
-            await cfm.write(cfg, path, FileType.JSON);
+        }
+        if (!cfm.fileExists(path)) {
+            console.log('no user config found');
         }
         else {
             const resp = await cfm.read(path, FileType.JSON);
             if (resp.status === DataStatus.OK && !resp.isEmpty()) {
                 console.log('Config loaded successfully.');
-                cfg = resp.data;
+                const cfg = resp.data;
+                Helper.mergeConfig(CFG, cfg, ['storage']);
             }
             else {
-                console.warn('Failed reading config');
+                console.warn('error reading config');
             }
         }
-        Helper.mergeConfig(CFG, cfg, ['storage']);
+    }
+    static async updateConfig(path, url) {
+        const req = new Request(url);
+        req.timeoutInterval = 10;
+        const data = await req.loadString();
+        const response = req.response;
+        if (response.statusCode !== 200) {
+            console.warn('loading config from web failed status: ' + response.statusCode);
+            return;
+        }
+        console.log('received config from repository');
+        const cfg = JSON.parse(data);
+        cfm.write(cfg, path, FileType.JSON);
     }
     static async updateScript() {
         const currentDate = new Date();
@@ -2460,7 +2471,7 @@ class Helper {
         console.log('updateScript: start updated');
         let _data = {};
         if (cfm.fileExists('.data.json', true)) {
-            const res = await cfm.read('.data.json', FileType.JSON, true);
+            const res = await cfm.read('.data', FileType.JSON, true);
             if (res.status === DataStatus.OK && !res.isEmpty()) {
                 _data = res.data;
             }
@@ -2472,11 +2483,13 @@ class Helper {
         const nextUpdate = new Date(lastUpdate);
         nextUpdate.setDate(nextUpdate.getDate() + autoUpdateInterval);
         if (nextUpdate > currentDate) {
-            console.log(`updateScript: skip (last update less the ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
+            console.log(`updateScript: skip (last update less than ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
             return;
         }
         console.log('updateScript: getting new script');
-        const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
+        const base_url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/';
+        await Helper.updateConfig('.default', `${base_url}config.json`);
+        const url = `${base_url}built/incidence.js`;
         const request = new Request(url);
         request.timeoutInterval = 10;
         const script = await request.loadString();

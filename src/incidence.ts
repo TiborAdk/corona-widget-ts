@@ -24,7 +24,7 @@ const CFG = {
         refreshInterval: 3600,  // interval the widget is updated after (in seconds),
         openUrlOnTap: false, // open url on tap
         openUrl: "https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4",
-        alternateLarge: true, // use alternative layout ofr large stack
+        alternateLarge: false, // use alternative layout ofr large stack
 
     },
     state: {
@@ -75,38 +75,38 @@ type Env = {
 }
 
 const ENV: Env = {
-    state: {nameIndex: CFG.state.useShortName ? 'short' : 'name'},
+    state: { nameIndex: CFG.state.useShortName ? 'short' : 'name' },
     areaIBZ: new Map([
-            [40, AreaType.KS], // Kreisfreie Stadt
-            [41, AreaType.SK], // Stadtkreis
-            [42, AreaType.K],  // Kreis
-            [43, AreaType.LK], // Landkreis
-            [45, AreaType.SV_K], // Sonderverband offiziell Kreis
-            [46, AreaType.SV_LK],  // Sonderverband offiziell Landkreis
-        ],
+        [40, AreaType.KS], // Kreisfreie Stadt
+        [41, AreaType.SK], // Stadtkreis
+        [42, AreaType.K],  // Kreis
+        [43, AreaType.LK], // Landkreis
+        [45, AreaType.SV_K], // Sonderverband offiziell Kreis
+        [46, AreaType.SV_LK],  // Sonderverband offiziell Landkreis
+    ],
     ),
     cacheAreas: new Map<string, IncidenceData<MetaArea>>(),
     cacheCountries: new Map<string, IncidenceData<MetaCountry>>(),
     cacheStates: new Map<string, IncidenceData<MetaState>>(),
     cacheVaccines: new Map<string, VaccineData>(),
     states: new Map<string, State>([
-            ['1', {short: 'SH', name: 'Schleswig-Holstein'}],
-            ['2', {short: 'HH', name: 'Hamburg'}],
-            ['3', {short: 'NI', name: 'Niedersachsen'}],
-            ['4', {short: 'HB', name: 'Bremen'}],
-            ['5', {short: 'NRW', name: 'Nordrhein-Westfalen'}],
-            ['6', {short: 'HE', name: 'Hessen'}],
-            ['7', {short: 'RP', name: 'Rheinland-Pfalz'}],
-            ['8', {short: 'BW', name: 'Baden-Württemberg'}],
-            ['9', {short: 'BY', name: 'Bayern'}],
-            ['10', {short: 'SL', name: 'Saarland'}],
-            ['11', {short: 'BE', name: 'Berlin'}],
-            ['12', {short: 'BB', name: 'Brandenburg'}],
-            ['13', {short: 'MV', name: 'Mecklenburg-Vorpommern'}],
-            ['14', {short: 'SN', name: 'Sachsen'}],
-            ['15', {short: 'ST', name: 'Sachsen-Anhalt'}],
-            ['16', {short: 'TH', name: 'Thüringen'}],
-        ],
+        ['1', { short: 'SH', name: 'Schleswig-Holstein' }],
+        ['2', { short: 'HH', name: 'Hamburg' }],
+        ['3', { short: 'NI', name: 'Niedersachsen' }],
+        ['4', { short: 'HB', name: 'Bremen' }],
+        ['5', { short: 'NRW', name: 'Nordrhein-Westfalen' }],
+        ['6', { short: 'HE', name: 'Hessen' }],
+        ['7', { short: 'RP', name: 'Rheinland-Pfalz' }],
+        ['8', { short: 'BW', name: 'Baden-Württemberg' }],
+        ['9', { short: 'BY', name: 'Bayern' }],
+        ['10', { short: 'SL', name: 'Saarland' }],
+        ['11', { short: 'BE', name: 'Berlin' }],
+        ['12', { short: 'BB', name: 'Brandenburg' }],
+        ['13', { short: 'MV', name: 'Mecklenburg-Vorpommern' }],
+        ['14', { short: 'SN', name: 'Sachsen' }],
+        ['15', { short: 'ST', name: 'Sachsen-Anhalt' }],
+        ['16', { short: 'TH', name: 'Thüringen' }],
+    ],
     ),
     cache: new Map<any, any>(),
     script: {
@@ -234,13 +234,13 @@ class CustomFont extends Font {
 type IncidenceLimit = { color: Color; limit: number }
 
 class Incidence {
-    static readonly DARKDARKRED: IncidenceLimit = {limit: 250, color: Colors.DARKDARKRED};
-    static readonly DARKRED: IncidenceLimit = {limit: 100, color: Colors.DARKRED};
-    static readonly RED: IncidenceLimit = {limit: 50, color: Colors.RED};
-    static readonly ORANGE: IncidenceLimit = {limit: 35, color: Colors.ORANGE};
-    static readonly YELLOW: IncidenceLimit = {limit: 25, color: Colors.YELLOW};
-    static readonly GREEN: IncidenceLimit = {limit: 1, color: Colors.GREEN};
-    static readonly GRAY: IncidenceLimit = {limit: 0, color: Colors.GRAY};
+    static readonly DARKDARKRED: IncidenceLimit = { limit: 250, color: Colors.DARKDARKRED };
+    static readonly DARKRED: IncidenceLimit = { limit: 100, color: Colors.DARKRED };
+    static readonly RED: IncidenceLimit = { limit: 50, color: Colors.RED };
+    static readonly ORANGE: IncidenceLimit = { limit: 35, color: Colors.ORANGE };
+    static readonly YELLOW: IncidenceLimit = { limit: 25, color: Colors.YELLOW };
+    static readonly GREEN: IncidenceLimit = { limit: 1, color: Colors.GREEN };
+    static readonly GRAY: IncidenceLimit = { limit: 0, color: Colors.GRAY };
 }
 
 type Rdata = {
@@ -494,7 +494,7 @@ abstract class StackLikeWrapper<T extends StackLike> implements StackLike {
     }
 
     protected static applyTextProperties2Element<T extends WidgetText | WidgetDate>(elem: T, properties: TextProperties = {}): T {
-        const {textOpacity, textColor, url, lineLimit, minimumScaleFactor, font} = properties;
+        const { textOpacity, textColor, url, lineLimit, minimumScaleFactor, font } = properties;
         if (textColor) UI.setColorOfElementByIndex(elem, 'textColor', textColor)
         if (font) elem.font = font;
         if (textOpacity) elem.textOpacity = textOpacity;
@@ -784,11 +784,11 @@ class StatusBlockStack extends CustomWidgetStack {
     private readonly textText?: WidgetText
 
     constructor(stack: WidgetStack, status?: DataStatus, showText: boolean = false, size?: Size) {
-        super(stack, {layout: Layout.VERTICAL, font: CustomFont.SMALL, size});
+        super(stack, { layout: Layout.VERTICAL, font: CustomFont.SMALL, size });
         this.showText = showText;
 
         this.iconText = this.addText('');
-        if (this.showText) this.textText = this.addText('', {font: CustomFont.XSMALL, textColor: '#999999'});
+        if (this.showText) this.textText = this.addText('', { font: CustomFont.XSMALL, textColor: '#999999' });
 
         if (status) this.setStatus(status);
 
@@ -828,16 +828,16 @@ class IncidenceContainer extends CustomWidgetStack {
     private readonly arrowText: WidgetText
 
     constructor(stack: WidgetStack, incidence?: number, font: CustomFont = CustomFont.NORMAL, fontSizeOffset?: number,
-                arrow?: TrendArrow, fontArrow?: Font, size?: Size) {
-        super(stack, {layout: Layout.HORIZONTAL, font, size,});
+        arrow?: TrendArrow, fontArrow?: Font, size?: Size) {
+        super(stack, { layout: Layout.HORIZONTAL, font, size, });
 
         const fontSmaller = font.newSizedByOffset(fontSizeOffset ?? 0);
 
-        this.part0 = this.addText('', {font, lineLimit: 1, minimumScaleFactor: 1});
-        this.part1 = this.addText('', {font: fontSmaller, lineLimit: 1, minimumScaleFactor: 0.5})
+        this.part0 = this.addText('', { font, lineLimit: 1, minimumScaleFactor: 1 });
+        this.part1 = this.addText('', { font: fontSmaller, lineLimit: 1, minimumScaleFactor: 0.5 })
 
         // this.addSpacer(); // align arrow right
-        this.arrowText = this.addText('', {font: fontArrow, lineLimit: 1, minimumScaleFactor: 1})
+        this.arrowText = this.addText('', { font: fontArrow, lineLimit: 1, minimumScaleFactor: 1 })
 
         // this.addSpacer(); // align all left
 
@@ -878,20 +878,20 @@ class HistoryCasesStack extends CustomWidgetStack {
     private readonly casesText: WidgetText;
     private readonly graphSize: Size;
 
-    constructor(stack: WidgetStack, graphSize: Size, font?: Font, properties: { spacing?: number, size?: Size, padding?: Padding, align?: Align, imageOpacity?: number, graphResizable?: boolean } = {spacing: 1,}) {
-        const {spacing, padding, align, imageOpacity, graphResizable} = properties;
+    constructor(stack: WidgetStack, graphSize: Size, font?: Font, properties: { spacing?: number, size?: Size, padding?: Padding, align?: Align, imageOpacity?: number, graphResizable?: boolean } = { spacing: 1, }) {
+        const { spacing, padding, align, imageOpacity, graphResizable } = properties;
 
         const size: Size = properties.size ?? new Size(graphSize.width, 0);
-        super(stack, {layout: Layout.VERTICAL, spacing, font, padding, size});
+        super(stack, { layout: Layout.VERTICAL, spacing, font, padding, size });
         this.graphSize = graphSize;
 
-        this.graphImage = this.addImage(emptyImage(), {imageOpacity});
+        this.graphImage = this.addImage(emptyImage(), { imageOpacity });
         this.graphResizable = graphResizable ?? false;
 
-        const casesStack = this.addStack({layout: Layout.HORIZONTAL});
+        const casesStack = this.addStack({ layout: Layout.HORIZONTAL });
 
         if (align === undefined || align === Align.RIGHT || align === Align.CENTER) casesStack.addSpacer();
-        this.casesText = casesStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.9});
+        this.casesText = casesStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
         if (align === Align.LEFT || align === Align.CENTER) casesStack.addSpacer();
     }
 
@@ -919,7 +919,7 @@ abstract class IncidenceRowStackBase extends CustomWidgetStack {
     protected trendStack: HistoryCasesStack;
 
     protected constructor(stack: WidgetStack, layout?: Layout, bgColor?: ColorValue, size?: Size, cornerRadius?: number, padding?: Padding) {
-        super(stack, {layout, bgColor, size, cornerRadius, padding,});
+        super(stack, { layout, bgColor, size, cornerRadius, padding, });
     }
 
     setName(name: string): void {
@@ -1004,9 +1004,9 @@ class SmallIncidenceRowStack extends IncidenceVaccineRowStackBase {
 
         this.graphSize = new Size(wr, ht - 1);
 
-        const c0 = this.addStack({layout: Layout.VERTICAL, size: new Size(wl, 0),});
-        const nameStack = c0.addStack({layout: Layout.HORIZONTAL, size: new Size(0, ht - 1)});
-        const vaccineStack = c0.addStack({layout: Layout.HORIZONTAL, size: new Size(0, hb), font: CustomFont.XSMALL});
+        const c0 = this.addStack({ layout: Layout.VERTICAL, size: new Size(wl, 0), });
+        const nameStack = c0.addStack({ layout: Layout.HORIZONTAL, size: new Size(0, ht - 1) });
+        const vaccineStack = c0.addStack({ layout: Layout.HORIZONTAL, size: new Size(0, hb), font: CustomFont.XSMALL });
         this.addSpacer(spacing);
         this.trendStack = new HistoryCasesStack(this.addStack(), this.graphSize, CustomFont.XSMALL, {
             spacing: 1,
@@ -1019,13 +1019,13 @@ class SmallIncidenceRowStack extends IncidenceVaccineRowStackBase {
         nameStack.addSpacer(); // align incidence right
         this.incidenceContainer = new IncidenceContainer(nameStack.addStack(), undefined, CustomFont.medium(12), -1);
         nameStack.addSpacer(2);
-        this.nameText = nameStack.addText('', {font: CustomFont.NORMAL});
+        this.nameText = nameStack.addText('', { font: CustomFont.NORMAL });
 
         // Vaccine
         vaccineStack.addSpacer();
-        this.vaccineIconText = vaccineStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.9});
+        this.vaccineIconText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
         vaccineStack.addSpacer(0);
-        this.vaccineQuoteText = vaccineStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.9});
+        this.vaccineQuoteText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
 
         if (data) {
             this.setData(data, minmax);
@@ -1038,7 +1038,7 @@ class SmallIncidenceBlockStack extends IncidenceRowStackBase {
         super(stack, Layout.VERTICAL, '#99999915', undefined, 8, [2, 0, 2, 4]);
         this.textColor = '#777777';
 
-        const row0 = this.addStack({layout: Layout.HORIZONTAL});
+        const row0 = this.addStack({ layout: Layout.HORIZONTAL });
         row0.addSpacer(); // align text right
 
         this.incidenceContainer = new IncidenceContainer(row0.addStack(), undefined, CustomFont.SMALL2, -1);
@@ -1048,7 +1048,7 @@ class SmallIncidenceBlockStack extends IncidenceRowStackBase {
             minimumScaleFactor: 1
         });
 
-        const row1 = this.addStack({layout: Layout.HORIZONTAL});
+        const row1 = this.addStack({ layout: Layout.HORIZONTAL });
         row1.addSpacer();
         this.trendStack = new HistoryCasesStack(row1.addStack(), new Size(58, 10), CustomFont.XSMALL, {
             imageOpacity: 0.9,
@@ -1075,13 +1075,13 @@ class HeaderStack extends CustomWidgetStack {
     private readonly isSmall: boolean;
 
     constructor(stack: WidgetStack, size: WidgetSize, title?: string, rValue?: number, type?: string, date?: Date) {
-        super(stack, {layout: Layout.HORIZONTAL});
+        super(stack, { layout: Layout.HORIZONTAL });
 
         this.isSmall = CustomListWidget.isSmall(size);
 
         this.titleText = this.addText('', Font.mediumSystemFont(22));
         this.addSpacer(3);
-        const middleStack = this.addStack({layout: Layout.VERTICAL});
+        const middleStack = this.addStack({ layout: Layout.VERTICAL });
         this.addSpacer();
         if (this.isSmall) {
             // add status block
@@ -1095,11 +1095,11 @@ class HeaderStack extends CustomWidgetStack {
         }
 
         // R
-        const rStack = middleStack.addStack({layout: Layout.HORIZONTAL});
-        this.rText = rStack.addText('', {font: CustomFont.MEDIUM});
+        const rStack = middleStack.addStack({ layout: Layout.HORIZONTAL });
+        this.rText = rStack.addText('', { font: CustomFont.MEDIUM });
         rStack.addSpacer(2);
 
-        const info = {font: CustomFont.XSMALL, textColor: '#777777'};
+        const info = { font: CustomFont.XSMALL, textColor: '#777777' };
         //const infoStack = rStack.addStack({layout: Layout.VERTICAL, font: CustomFont.XSMALL, textColor: '#777777'});
         this.shownText = rStack.addText('', info);
         this.dateText = middleStack.addText('', info);
@@ -1207,14 +1207,14 @@ class AreaRowStack extends IncidenceRowStackBase {
             nameStack.addSpacer();
         } else {
             row0.setBackgroundColor(bgColor);
-            nameStack = row0.addStack({layout: Layout.HORIZONTAL, font: CustomFont.MEDIUM});
+            nameStack = row0.addStack({ layout: Layout.HORIZONTAL, font: CustomFont.MEDIUM });
             minScale = 1;
             nameStack.addSpacer(5);
         }
 
         this.areaIconStack = new AreaIconStack(nameStack.addStack());
         nameStack.addSpacer(3);
-        this.nameText = nameStack.addText('', {lineLimit: 1, minimumScaleFactor: minScale});
+        this.nameText = nameStack.addText('', { lineLimit: 1, minimumScaleFactor: minScale });
 
         if (isSmall) nameStack.addSpacer();
 
@@ -1225,7 +1225,7 @@ class AreaRowStack extends IncidenceRowStackBase {
             row0.addSpacer(5);
         }
 
-        this.trendStack = new HistoryCasesStack(row0.addStack({textColor: '#888888'}), this.graphSize, CustomFont.XSMALL);
+        this.trendStack = new HistoryCasesStack(row0.addStack({ textColor: '#888888' }), this.graphSize, CustomFont.XSMALL);
 
         if (status) this.setStatus(status, data?.location);
         if (data) {
@@ -1264,7 +1264,7 @@ class AreaErrorRowStack extends AreaRowStack {
     addDummyData() {
         let dummyGraphData: IncidenceGraphData[] = [];
         for (let i = 0; i < 21; i++) {
-            dummyGraphData.push({cases: 0, incidence: 0});
+            dummyGraphData.push({ cases: 0, incidence: 0 });
         }
 
         this.setGraph(dummyGraphData);
@@ -1282,11 +1282,11 @@ class StateRowStack extends IncidenceVaccineRowStackBase {
 
         this.graphSize = new Size(84, 16); //new Size(71, 11);
 
-        this.nameText = this.addText('', {lineLimit: 1, minimumScaleFactor: 1, font: CustomFont.MEDIUM});
+        this.nameText = this.addText('', { lineLimit: 1, minimumScaleFactor: 1, font: CustomFont.MEDIUM });
         this.addSpacer(2);
         this.incidenceContainer = new IncidenceContainer(this.addStack(), undefined, CustomFont.boldMono(12), -1, undefined, CustomFont.boldRounded(12));
         this.addSpacer();
-        const vaccineStack = this.addStack({layout: Layout.HORIZONTAL, font: CustomFont.SMALL, spacing: 1,});
+        const vaccineStack = this.addStack({ layout: Layout.HORIZONTAL, font: CustomFont.SMALL, spacing: 1, });
         this.addSpacer();
         this.trendStack = new HistoryCasesStack(this.addStack(), this.graphSize, CustomFont.XSMALL, {
             spacing: 1,
@@ -1295,9 +1295,9 @@ class StateRowStack extends IncidenceVaccineRowStackBase {
         });
 
         // Vaccine
-        this.vaccineIconText = vaccineStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.9});
-        this.vaccineQuoteText = vaccineStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.9});
-        this.vaccinatedText = vaccineStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.9});
+        this.vaccineIconText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
+        this.vaccineQuoteText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
+        this.vaccinatedText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
 
         if (data) this.setData(data, minmax);
     }
@@ -1319,13 +1319,13 @@ class MultiAreaRowStack extends CustomWidgetStack {
 
     constructor(stack: WidgetStack, widgetSize: WidgetSize, elementDepth: number, dataRows?: areaDataRow[], state?: IncidenceData<MetaState>, minmax?: IncGraphMinMax) {
         const bgColor = UI.elementDepth2BgColor(elementDepth);
-        super(stack, {layout: Layout.VERTICAL, cornerRadius: 10, spacing: 1, bgColor});
+        super(stack, { layout: Layout.VERTICAL, cornerRadius: 10, spacing: 1, bgColor });
         this.elementDepth = elementDepth;
         this.widgetSize = widgetSize;
         this.areas = new Map();
 
         this.stateStack = new StateRowStack(this.addStack(), state, minmax, undefined, [2, 4, 2, 4]);
-        this.areaStacks = this.addStack({layout: Layout.VERTICAL, spacing: 1});
+        this.areaStacks = this.addStack({ layout: Layout.VERTICAL, spacing: 1 });
 
         if (dataRows) {
             this.addAreas(dataRows, minmax);
@@ -1385,7 +1385,7 @@ abstract class ListStack<S, T> extends CustomWidgetStack {
     }
 
     protected constructor(stack: WidgetStack, widgetSize: WidgetSize, layout: Layout = Layout.VERTICAL, spacing?: number, maxLength?: number) {
-        super(stack, {layout});
+        super(stack, { layout });
 
         if (spacing) {
             if (spacing < 0) {
@@ -1433,7 +1433,7 @@ class AreaListStack extends CustomWidgetStack {
     elementDepth: number;
 
     constructor(stack: WidgetStack, widgetSize: WidgetSize, dataRows: areaDataRow[] = [], minmax?: IncGraphMinMax) {
-        super(stack, {layout: Layout.VERTICAL, cornerRadius: 10, spacing: 2,});
+        super(stack, { layout: Layout.VERTICAL, cornerRadius: 10, spacing: 2, });
         this.widgetSize = widgetSize;
         this.elementDepth = 0;
         this.addAreas(dataRows, minmax);
@@ -1478,9 +1478,9 @@ class StatesRowStack extends ListStack<IncidenceData<MetaState | MetaCountry>, I
 
     protected createItem(data: IncidenceData<MetaState | MetaCountry>, spacing?: number, minmax?: IncGraphMinMax) {
         if (CustomListWidget.isSmall(this.widgetSize)) {
-            return new SmallIncidenceBlockStack(this.addStack({bgColor: Colors.BACKGROUND2}), data, minmax);
+            return new SmallIncidenceBlockStack(this.addStack({ bgColor: Colors.BACKGROUND2 }), data, minmax);
         } else {
-            return new SmallIncidenceRowStack(this.addStack({bgColor: Colors.BACKGROUND2}), data, minmax);
+            return new SmallIncidenceRowStack(this.addStack({ bgColor: Colors.BACKGROUND2 }), data, minmax);
         }
     }
 
@@ -1571,42 +1571,42 @@ class IncidenceListWidget extends CustomListWidget {
         }
 
         // AREAS
-        const graphMinMax: IncGraphMinMax = {min: {incidence: 0, cases: 0}, max: {incidence: 0, cases: 0}};
+        const graphMinMax: IncGraphMinMax = { min: { incidence: 0, cases: 0 }, max: { incidence: 0, cases: 0 } };
         const areaRows: areaDataRow[] = await Promise.all(
             this.locations.map(async (location: CustomLocation) => {
-                    const respArea = await IncidenceData.loadArea(location);
-                    const status = respArea.status;
+                const respArea = await IncidenceData.loadArea(location);
+                const status = respArea.status;
 
-                    if (!respArea.succeeded() || respArea.isEmpty()) {
-                        console.warn('Loading Area failed. Status: ' + status);
-                        return {status: status};
-                    }
-                    const area = respArea.data;
-                    const areaWithIncidence = IncidenceData.calcIncidence(area);
+                if (!respArea.succeeded() || respArea.isEmpty()) {
+                    console.warn('Loading Area failed. Status: ' + status);
+                    return { status: status };
+                }
+                const area = respArea.data;
+                const areaWithIncidence = IncidenceData.calcIncidence(area);
 
-                    const maxValues = areaWithIncidence.getMax();
+                const maxValues = areaWithIncidence.getMax();
 
-                    for (const maxKey in maxValues) {
-                        if (maxValues)
-                            if (!graphMinMax.max) {
-                                graphMinMax.max = {};
-                                graphMinMax.max[maxKey] = maxValues[maxKey];
-                            } else if (!graphMinMax.max[maxKey]) {
-                                graphMinMax.max[maxKey] = maxValues[maxKey];
-                            } else if (maxValues[maxKey] > graphMinMax.max[maxKey]) {
-                                graphMinMax.max[maxKey] = maxValues[maxKey];
-                            }
-                    }
+                for (const maxKey in maxValues) {
+                    if (maxValues)
+                        if (!graphMinMax.max) {
+                            graphMinMax.max = {};
+                            graphMinMax.max[maxKey] = maxValues[maxKey];
+                        } else if (!graphMinMax.max[maxKey]) {
+                            graphMinMax.max[maxKey] = maxValues[maxKey];
+                        } else if (maxValues[maxKey] > graphMinMax.max[maxKey]) {
+                            graphMinMax.max[maxKey] = maxValues[maxKey];
+                        }
+                }
 
-                    return {status: status, data: areaWithIncidence, name: location.name};
-                },
+                return { status: status, data: areaWithIncidence, name: location.name };
+            },
             )
         );
 
         console.log('MaxValues: ' + JSON.stringify(graphMinMax));
 
         if (this.isSmall()) {
-            const {status: dataStatus, data} = areaRows[0];
+            const { status: dataStatus, data } = areaRows[0];
             this.setStatus(dataStatus, data?.location);
         }
 
@@ -1635,7 +1635,7 @@ class IncidenceListWidget extends CustomListWidget {
             const multiRows = Helper.aggregateToMultiRows(areaRows, states, 10);
             this.areaListStack.addMultiAreas(multiRows, graphMinMax);
         } else if (this.isLarge() && !this.alternateLarge) {
-            this.addAreas(areaRows.slice(0,6), graphMinMax);
+            this.addAreas(areaRows.slice(0, 6), graphMinMax);
             this.addStates(states);
         } else {
             this.addAreas(areaRows, graphMinMax);
@@ -1666,7 +1666,7 @@ class IncidenceListWidget extends CustomListWidget {
     }
 
     addArea(status: DataStatus, data?: IncidenceData<MetaArea>, name?: string, minmax?: IncGraphMinMax): void {
-        this.areaListStack.addArea({status, data, name}, minmax);
+        this.areaListStack.addArea({ status, data, name }, minmax);
     }
 
     addAreas(dataRows: { status: DataStatus, data?: IncidenceData<MetaArea>, name?: string }[], minmax?: IncGraphMinMax, showVaccine = false) {
@@ -1691,7 +1691,7 @@ interface IncidenceValue extends IncidenceGraphData {
 
 class UI {
     static generateGraph(data: any[], size: Size, minmax: IncGraphMinMax = {}, valueIndex: string = 'cases', colorIndex: string = 'incidence',
-                         align: Align = Align.LEFT, upsideDown: boolean = CFG.graph.upsideDown): DrawContext {
+        align: Align = Align.LEFT, upsideDown: boolean = CFG.graph.upsideDown): DrawContext {
         const context = new DrawContext();
         context.size = size;
         context.opaque = false;
@@ -2000,8 +2000,8 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
     getMax(): IncGraphValues {
 
         return this.data.reduce((p: IncGraphValues, c: IncidenceValue) => {
-            const {cases, incidence} = c;
-            const {cases: pC, incidence: pI} = p;
+            const { cases, incidence } = c;
+            const { cases: pC, incidence: pI } = p;
             return {
                 cases: !pC || (cases && cases > pC) ? cases : pC,
                 incidence: !pI || (incidence && incidence > pI) ? incidence : pI
@@ -2154,7 +2154,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         const logPre = `country ${code}`;
 
         // GER DATA
-        const {cachedData, cachedAge} = await IncidenceData.loadCached(code, IncidenceData.loadCountryFromCache);
+        const { cachedData, cachedAge } = await IncidenceData.loadCached(code, IncidenceData.loadCountryFromCache);
 
         if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 3600) {
             console.log(`${logPre}: using cached data`);
@@ -2207,7 +2207,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         }
 
         // load data from cache. If its fresh enough we return it
-        const {cachedData, cachedAge} = await IncidenceData.loadCached(location, IncidenceData.loadAreaFromCache);
+        const { cachedData, cachedAge } = await IncidenceData.loadCached(location, IncidenceData.loadAreaFromCache);
 
         if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 1000) {
             console.log('Using cached data')
@@ -2274,7 +2274,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
         const logPre = `state ${id}`;
 
-        const {cachedData, cachedAge} = await this.loadCached(id, IncidenceData.loadStateFromCache);
+        const { cachedData, cachedAge } = await this.loadCached(id, IncidenceData.loadStateFromCache);
 
         if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 1000) {
             console.log(`${logPre}: using cached data`)
@@ -2335,7 +2335,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         } else {
             console.log('Loading from cache failed.');
         }
-        return {cachedData, cachedAge};
+        return { cachedData, cachedAge };
     }
 
     static isState(data: IncidenceData<MetaData>): data is IncidenceData<MetaState> {
@@ -2404,7 +2404,7 @@ class MultiAreaRow {
             console.warn(`BL_ID of area and state do not match. (${blId}, should be ${this.state.meta.BL_ID})`);
             return;
         }
-        const {id: areaId} = data;
+        const { id: areaId } = data;
         if (this.areas.has(areaId) || this.currentId === areaId) {
             console.log('Area has already been added. To update an area use updateAreaRow.');
             return;
@@ -2488,7 +2488,7 @@ class MultiAreaRows {
         const values: MultiAreaRow[] = this.currentLocation ? [this.currentLocation, ...this.mapStates.values()] : [...this.mapStates.values()];
 
         return values.map(value => {
-            return {areaRows: value.getAreaRows(), state: value.getState()};
+            return { areaRows: value.getAreaRows(), state: value.getState() };
         });
 
     }
@@ -2533,15 +2533,15 @@ class CustomLocation implements CustomLocationInterface {
         }
     }
 
-    static async getLocation({latitude, longitude, name, type}: CustomLocation): Promise<CustomLocation> {
+    static async getLocation({ latitude, longitude, name, type }: CustomLocation): Promise<CustomLocation> {
         if (latitude >= 0 && longitude >= 0) {
-            return {latitude, longitude, name, type, status: LocationStatus.OK};
+            return { latitude, longitude, name, type, status: LocationStatus.OK };
         }
         let _loc = await CustomLocation.current();
         if (_loc === null) {
             _loc = await CustomLocation.currentFromCache();
             if (_loc === null) {
-                return {latitude, longitude, name, type, status: LocationStatus.FAILED};
+                return { latitude, longitude, name, type, status: LocationStatus.FAILED };
             }
         }
         _loc.name = name;
@@ -2553,7 +2553,7 @@ class CustomLocation implements CustomLocationInterface {
         const _staticCoords = str.split(';').map(coords => coords.split(','));
 
         const _current = () => {
-            return {latitude: -1, longitude: -1, type: LocationType.CURRENT, name: undefined};
+            return { latitude: -1, longitude: -1, type: LocationType.CURRENT, name: undefined };
         };
 
         const _coords: { index: number, location: CustomLocation }[] = [];
@@ -2582,7 +2582,7 @@ class CustomLocation implements CustomLocationInterface {
                 type = LocationType.STATIC;
             }
 
-            _coords[index] = {index, location: {latitude, longitude, type, name}};
+            _coords[index] = { index, location: { latitude, longitude, type, name } };
         }
         if (_coords.length === 0) {
             return [_current()];
@@ -2607,7 +2607,7 @@ class CustomLocation implements CustomLocationInterface {
         return _locations;
     }
 
-    static async geoCache({latitude, longitude, type}: CustomLocation, id: string): Promise<void> {
+    static async geoCache({ latitude, longitude, type }: CustomLocation, id: string): Promise<void> {
         const lat = latitude.toFixed(CFG.geoCache.accuracy);
         const lon = longitude.toFixed(CFG.geoCache.accuracy);
         const key: string = lat + ',' + lon;
@@ -2635,10 +2635,10 @@ class CustomLocation implements CustomLocationInterface {
     }
 
     static async idFromCache({
-                                 latitude,
-                                 longitude,
-                                 type
-                             }: CustomLocation): Promise<DataResponse<string> | EmptyResponse> {
+        latitude,
+        longitude,
+        type
+    }: CustomLocation): Promise<DataResponse<string> | EmptyResponse> {
 
         const resp = await cfm.read('/coronaWidget_geo', FileType.JSON);
         if (resp.status !== DataStatus.OK) {
@@ -2690,7 +2690,7 @@ class CustomLocation implements CustomLocationInterface {
         const latitude = Number.parseFloat(parts[0]);
         const longitude = Number.parseFloat(parts[1]);
 
-        return {latitude, longitude, type: LocationType.CURRENT, status: LocationStatus.CACHED};
+        return { latitude, longitude, type: LocationType.CURRENT, status: LocationStatus.CACHED };
     }
 }
 
@@ -2898,7 +2898,7 @@ class CustomFileManager implements FileManagerInterface {
         switch (extension) {
             case 'txt':
                 return FileType.TEXT;
-            case'json':
+            case 'json':
                 return FileType.JSON;
             case 'log':
                 return FileType.LOG
@@ -2939,7 +2939,7 @@ class Format {
 
     static rValue(data: string): Rdata {
         const parsedData = Parse.rCSV(data);
-        let res: Rdata = {date: null, r: 0};
+        let res: Rdata = { date: null, r: 0 };
         if (parsedData.length === 0) return res;
         // find used key
         let rValueField;
@@ -3044,55 +3044,69 @@ class Helper {
         return multiRows.getMultiRows();
     }
 
-    static mergeConfig(target: { [k: string]: { [k: string]: any } }, source: { [k: string]: { [k: string]: any } }, skippKeys: string[] = []): void {
+    static mergeConfig(target: { [k: string]: { [k: string]: any } }, source: { [k: string]: { [k: string]: any } }, skipKeys: string[] = []): void {
         for (const key in source) {
-            if (skippKeys.includes(key)) {
+            if (skipKeys.includes(key)) {
                 console.log('skipping key ' + key);
                 continue;
             }
             if (key in target) {
-                target[key] = {...target[key], ...source[key]};
+                target[key] = { ...target[key], ...source[key] };
             } else {
                 target[key] = source[key];
             }
         }
     }
 
-    static async loadConfig() {
-        const path = 'config.json';
-        const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json'
-        let cfg: { [key: string]: { [key: string]: any } } = CFG;
+    static async loadConfig(path: string = 'config.json', path_default: string = '.default.json') {
+        if (!cfm.fileExists(path_default)) {
+            console.warn('default config not found');
+        } else {
+            const resp = await cfm.read(path_default, FileType.JSON);
+            if (resp.status === DataStatus.OK && !resp.isEmpty()) {
+                const cfg_default : { [key: string]: { [key: string]: any } } = resp.data;
+                Helper.mergeConfig(CFG, cfg_default, ['storage']);
+            } else {
+                console.warn('error reading defaults');
+            }
+        }
 
         if (!cfm.fileExists(path)) {
-            console.log('Config file does not exist. Trying to get default config from repositoryy.');
-            const req = new Request(url);
-            req.timeoutInterval = 20;
-
-            const data = await req.loadString();
-            const response = req.response;
-            if (response.statusCode && response.statusCode === 200) {
-                console.log('Config loaded from web.');
-                cfg = JSON.parse(data);
-            } else {
-                console.warn('Loading config from web failed.');
-            }
-            await cfm.write(cfg, path, FileType.JSON);
+            console.log('no user config found');
         } else {
             const resp = await cfm.read(path, FileType.JSON);
             if (resp.status === DataStatus.OK && !resp.isEmpty()) {
                 console.log('Config loaded successfully.');
-                cfg = resp.data;
+                const cfg: { [key: string]: { [key: string]: any } } = resp.data;
+                Helper.mergeConfig(CFG, cfg, ['storage']);
             } else {
-                console.warn('Failed reading config');
+                console.warn('error reading config');
             }
         }
+    }
 
-        Helper.mergeConfig(CFG, cfg, ['storage']);
+    static async updateConfig(path: string, url: string): Promise<void> {
+        const req = new Request(url);
+        req.timeoutInterval = 10;
+
+        const data = await req.loadString();
+        const response = req.response;
+
+        if (response.statusCode !== 200) {
+            console.warn('loading config from web failed status: ' + response.statusCode);
+            return;
+        }
+
+        console.log('received config from repository');
+        const cfg = JSON.parse(data);
+
+        cfm.write(cfg, path, FileType.JSON);
+
     }
 
     static async updateScript() {
         const currentDate = new Date();
-        const {autoUpdateInterval, autoUpdate} = CFG.script;
+        const { autoUpdateInterval, autoUpdate } = CFG.script;
 
         if (!autoUpdate) {
             console.log('updateScript: skip (disabled)')
@@ -3102,7 +3116,7 @@ class Helper {
 
         let _data: { [k: string]: any } = {};
         if (cfm.fileExists('.data.json', true)) {
-            const res = await cfm.read('.data.json', FileType.JSON, true);
+            const res = await cfm.read('.data', FileType.JSON, true);
 
             if (res.status === DataStatus.OK && !res.isEmpty()) {
                 _data = res.data;
@@ -3116,13 +3130,15 @@ class Helper {
         nextUpdate.setDate(nextUpdate.getDate() + autoUpdateInterval);
 
         if (nextUpdate > currentDate) {
-            console.log(`updateScript: skip (last update less the ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
+            console.log(`updateScript: skip (last update less than ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
             return;
         }
-
         console.log('updateScript: getting new script');
 
-        const url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
+        const base_url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/';
+        await Helper.updateConfig('.default', `${base_url}config.json`);
+
+        const url = `${base_url}built/incidence.js`;
         const request = new Request(url);
         request.timeoutInterval = 10;
 
@@ -3179,7 +3195,7 @@ interface ApiVaccineData extends ApiVaccinated {
 interface RkiServiceInterface {
     cache: Map<string, any>
 
-    locationData: ({longitude, latitude}: { latitude: number, longitude: number }) => Promise<any>;
+    locationData: ({ longitude, latitude }: { latitude: number, longitude: number }) => Promise<any>;
     casesArea: (id: string) => Promise<boolean | IncidenceValue[]>;
     casesState: (id: string) => Promise<boolean | IncidenceValue[]>;
     casesGer: () => Promise<boolean | IncidenceValue[]>;
@@ -3343,7 +3359,7 @@ class RkiService /*implements RkiServiceInterface*/ {
         return IncidenceData.completeHistory(data);
     }
 
-    async locationData({latitude, longitude}: { latitude: number; longitude: number }): Promise<false | ApiMetaArea> {
+    async locationData({ latitude, longitude }: { latitude: number; longitude: number }): Promise<false | ApiMetaArea> {
         const lon = longitude.toFixed(3);
         const lat = latitude.toFixed(3);
         const outputFields = 'GEN,RS,EWZ,EWZ_BL,BL_ID,cases,cases_per_100k,cases7_per_100k,cases7_bl_per_100k,last_update,BL,IBZ';
@@ -3387,7 +3403,7 @@ class RkiService /*implements RkiServiceInterface*/ {
         if (response.status === DataStatus.OK && !response.isEmpty()) {
             return Format.rValue(response.data);
         } else {
-            return {date: null, r: 0};
+            return { date: null, r: 0 };
         }
     }
 
