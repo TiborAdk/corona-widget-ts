@@ -1,4 +1,4 @@
-# Corona Inzidenze Widget für iOS (Scriptable)
+# Corona Inzidenz Widget für iOS (Scriptable)
 
 [![build](https://github.com/TiborAdk/corona-widget-ts/actions/workflows/main.yml/badge.svg)](https://github.com/TiborAdk/corona-widget-ts/actions/workflows/main.yml)
 
@@ -26,7 +26,7 @@ von [rphl](https://github.com/rphl): [rphl/corona-widget](https://github.com/rph
 
 # Quelle/Datenbasis
 
-* Das Widget basiert auf der offiziellen Api des RKI. https://npgeo-corona-npgeo-de.hub.arcgis.com/ \
+* Das Widget basiert auf der offiziellen Api des RKI. <https://npgeo-corona-npgeo-de.hub.arcgis.com/> \
 *Lizenz: Robert Koch-Institut (RKI), [dl-de/by-2-0](https://www.govdata.de/dl-de/by-2-0)*
 * Die bereitgestellten Daten können in bestimmten Regionen aufgrund von Meldeverzögerungen durch Ämter an das RKI (Api)
   erst verzögert (Stunden-Tage) im Widget angezeigt werden.
@@ -35,26 +35,18 @@ von [rphl](https://github.com/rphl): [rphl/corona-widget](https://github.com/rph
 
 # Installation/Update
 
-Diese Script benötigt die App [Scriptable](https://apps.apple.com/de/app/scriptable/id1405459188?l=en).
+Diese Script benötigt die App [Scriptable](https://apps.apple.com/de/app/scriptable/id1405459188?).
 
-**Manuell**
+## Manuell
 
-* Safari öffnen: https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/installer.js
+* Safari öffnen: <https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/installer.js>
 * Skripttext kopieren
-* Scriptable öffnen, kopierten Skripttext als neues Scriptablescript einfügen oder altes ersetzen.
-* Das skirpt einmal ausführen. (Der Installer lädt das eigentliche Skript für das Widget und ersetzt sich durch dieses.)
+* Scriptable öffnen, kopierten Skripttext als neues Scriptableskript einfügen oder altes ersetzen.
+* Das Skript einmal ausführen. (Der Installer lädt das eigentliche Skript für das Widget und ersetzt sich durch dieses.)
 * Widget auf dem Homescreen hinzufügen
 * Skript für das Widget auswählen und Parameter eingeben.
 
-# Konfiguration
-
-* Daten werden Standardmäßig unter **Dateien (App)** > **iCloud** > **Scriptable** > **corona_widget_ts** > *.json
-  zwischengespeichert.
-* Die allgemeine Konfiguration erfolgt über die Date **config.json**.\
-  (Falls die Datei nicht existiert werden die Standardwerte aus dem Repository geladen und in der Datei **config.json**
-  gespeichert)
-
-![WidgetParameter]()
+![picture_WidgetParameter]()
 
 # Statische Standortkoordinaten
 
@@ -75,11 +67,11 @@ Dabei ist Folgendes zu beachten.
 1. Wenn keine Parameter angegeben werden, wird der aktuelle Standort verwendet.
 2. Bis zur größten Position (`POS`) müssen alle Positionen vorkommen außer die Position `0`.
 3. Wenn `POS = 0` nicht angegeben ist, wird an ihrer Stelle der aktuelle Standort angezeigt.
-4. Wenn bei einem `STANDORD` `LAT` und `LON` nicht gesetzt oder leer sind, wird die aktuelle Position verwendet.
+4. Wenn bei einem `STANDORT` `LAT` und `LON` nicht gesetzt oder leer sind, wird die aktuelle Position verwendet.
 
-**Beispiele**
+## Beispiele
 
-* Aktueller Standort: ` ` (Parameter leer)
+* Aktueller Standort: `0`
 * Erster Standort statisch (SmallWidget): `0,52.022,8.522`
 * Zweiter Standort ist statisch (MediumWidget): `1,52.022,8.522`
 * Beide Standorte sind statisch (MediumWidget): `0,52.022,8.522;1,52.514,13.380`
@@ -87,16 +79,28 @@ Dabei ist Folgendes zu beachten.
 * Eigener Name z.B "Home" für den ersten Standort: `0,52.022,8.522,Home`
 * Eigener Name z.B "Work" für den zweiten Standort: `1,52.514,13.380,Work`
 
+## Default
+
+Wenn keine Parameter angegeben sind werden folgende Standorte verwendet:
+
+1. Aktueller Standort
+2. Bielefeld
+3. München
+4. Köln
+5. Stuttgart
+6. Frankfurt am Main
+
 # Widgets
 
 Es können drei verscheiden große Widgets angezeigt werden. Klein, Mittel und Groß. Ein kleines Widget kann Informationen
-zu einem Standort anzeigen, das mittlere Widget für bis zu zwei und das große Widget für bis zu 6.
+zu einem Standort anzeigen, das mittlere Widget für bis zu zwei und das große Widget für bis zu 6. \
+Die Größe der Widgets bestimmt sich durch die größe des Erstellten Scriptable Widgets.
 
 Wenn einem Widget über die Parameter mehr Standorte übergeben werden, als es anzeigen kann, werden diese verworfen.
 
 ## Klein (small)
 
-![widget_small]()
+![picture_widget_small]()
 
 Zeigt Informationen für einen Standort (Fest oder Aktuell), dessen Bundesland und Deutschland an.
 
@@ -109,7 +113,7 @@ Angezeigte Informationen:
 
 ## Mittel (medium)
 
-![widget_medium]()
+![picture_widget_medium]()
 
 Kann Informationen für bis zu zwei Standorte, deren Bundesländer und Deutschland anzeigen.
 
@@ -125,7 +129,7 @@ Angezeigt Informationen:
 
 ## Groß (large)
 
-![widget_large]()
+![picture_widget_large]()
 
 Kann Informationen für bis zu sechs Standorte, bis zu vier Bundesländer und Deutschland anzeigen. \
 Als Bundesländer werden die ersten vier unterschiedlichen Bundesländer der Standorte genommen. Ausschlaggebend ist dabei
@@ -143,7 +147,7 @@ Angezeigte Informationen:
 
 ## Groß (large) alternativ
 
-![widget_large_alternate]()
+![picture_widget_large_alternate]()
 Kann Informationen für bis zu 8 Standorte und Bundesländer anzeigen. Alle Standorte eines Bundeslandes werden zusammen
 mit dem jeweiligen Bundesland angezeigt. Falls der aktuelle Standort teil der Standorte ist, wird dieser immer als
 erstes angezeigt, somit wird auch das Bundesland als erstes aufgeführt. Die Reihenfolge der Standorte richtet sich nach
@@ -167,13 +171,12 @@ Das Widget zeigt unterschiedliche Icons abhängig vom Status des angezeigten Sta
   * `📍`: keine Probleme
   * `📡`: kein GPS, kein Internet oder Probleme mit der API des RKIs. (Es werden die lokal gespeicherten Daten verwendet.)
   
-* Fester Standort 
+* Fester Standort
   * ` `: keine Probleme
   * `💾`: kein Internet oder Probleme mit der API des RKIs. (Es werden die lokal gespeicherten Daten verwendet.)
   
-
 # Erweiterte Konfiguration
 
 Die Konfiguration erfolgt über die Date **config.json** im Ordner `iCloud/Scriptable/corona_widget_ts/`.
 Über die Datei können verschiedene Eigenschaften des Skriptes angepasst werden. \
-Nähere Informationnen dazu finden sich [hier](doc/config.md)
+Nähere Informationen dazu finden sich [hier](doc/config.md).
