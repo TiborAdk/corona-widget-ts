@@ -34,7 +34,8 @@ const CFG = {
         accuracy: 2, // accuracy the gps staticCoords are cached with (0: 111 Km; 1: 11,1 Km; 2: 1,11 Km; 3: 111 m; 4: 11,1 m)
     },
     vaccine: {
-        show: true, // show the data regarding the vaccination. Small widget wont show this information.
+        show: true,
+        show2nd: false, // show data regarding 2nd round of vaccination
     },
     script: {
         autoUpdate: true,
@@ -700,6 +701,9 @@ class IncidenceVaccineRowStackBase extends IncidenceRowStackBase {
     setVaccineQuote(quote) {
         this.vaccineQuoteText.text = quote > 0 ? Format.number(quote, 2) + '%' : 'n/v';
     }
+    setVaccineQuote2nd(quote) {
+        this.vaccineQuote2ndText.text = quote > 0 ? '(' + Format.number(quote, 2) + '%)' : '';
+    }
     setVaccinated(vaccinated) {
         if (this.vaccinatedText)
             this.vaccinatedText.text = ' (' + Format.number(vaccinated) + ')';
@@ -708,6 +712,7 @@ class IncidenceVaccineRowStackBase extends IncidenceRowStackBase {
         this.vaccineIconText.text = '💉';
         this.setVaccinated(data.vaccinated);
         this.setVaccineQuote(data.quote);
+        this.setVaccineQuote2nd(data.second_vaccination.quote);
     }
     setData(data, minmax) {
         super.setData(data, minmax);
@@ -747,6 +752,8 @@ class SmallIncidenceRowStack extends IncidenceVaccineRowStackBase {
         this.vaccineIconText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
         vaccineStack.addSpacer(0);
         this.vaccineQuoteText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
+        vaccineStack.addSpacer(1);
+        this.vaccineQuote2ndText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.5 });
         if (data) {
             this.setData(data, minmax);
         }
@@ -966,6 +973,7 @@ class StateRowStack extends IncidenceVaccineRowStackBase {
         // Vaccine
         this.vaccineIconText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
         this.vaccineQuoteText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
+        this.vaccineQuote2ndText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.8 });
         this.vaccinatedText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
         if (data)
             this.setData(data, minmax);
@@ -1650,6 +1658,7 @@ class IncidenceData extends CustomData {
             second_vaccination: {
                 difference: vaccine["2nd_vaccination"].difference_to_the_previous_day,
                 vaccinated: vaccine["2nd_vaccination"].vaccinated,
+                quote: vaccine["2nd_vaccination"].quote,
             },
             vaccinated: vaccine.vaccinated,
             vaccinations_per_1k: vaccine.vaccinations_per_1000_inhabitants,
@@ -2510,7 +2519,7 @@ class Helper {
             if (cfm.fileExists(backupFile, false))
                 await cfm.remove(backupFile, false);
             cfm.copy(currentFile, backupFile, false);
-            cfm.write(script, currentFile, FileType.TEXT, false);
+            cfm.write(script, currentFile, FileType.OTHER, false);
             cfm.remove(backupFile, false);
             _data['lastUpdated'] = currentDate;
             cfm.write(_data, '.data.json', FileType.JSON, true); // .data.json is stored in configDir
