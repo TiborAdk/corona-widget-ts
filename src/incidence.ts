@@ -38,7 +38,6 @@ const CFG = {
     },
     vaccine: {
         show: true, // show the data regarding the vaccination. Small widget wont show this information.
-        show2nd: false, // show data regarding 2nd round of vaccination
     },
     script: {
         autoUpdate: true, // whether the script should update it self
@@ -986,7 +985,7 @@ abstract class IncidenceVaccineRowStackBase extends IncidenceRowStackBase {
         this.vaccineIconText.text = '💉';
         this.setVaccinated(data.vaccinated);
         this.setVaccineQuote(data.quote);
-        this.setVaccineQuote2nd(data.second_vaccination.quote);
+        //this.setVaccineQuote2nd(data.second_vaccination.quote);
     }
 
     setData(data: IncidenceData<MetaCountry | MetaState>, minmax?: IncGraphMinMax): void {

@@ -34,8 +34,7 @@ const CFG = {
         accuracy: 2, // accuracy the gps staticCoords are cached with (0: 111 Km; 1: 11,1 Km; 2: 1,11 Km; 3: 111 m; 4: 11,1 m)
     },
     vaccine: {
-        show: true,
-        show2nd: false, // show data regarding 2nd round of vaccination
+        show: true, // show the data regarding the vaccination. Small widget wont show this information.
     },
     script: {
         autoUpdate: true,
@@ -712,7 +711,7 @@ class IncidenceVaccineRowStackBase extends IncidenceRowStackBase {
         this.vaccineIconText.text = '💉';
         this.setVaccinated(data.vaccinated);
         this.setVaccineQuote(data.quote);
-        this.setVaccineQuote2nd(data.second_vaccination.quote);
+        //this.setVaccineQuote2nd(data.second_vaccination.quote);
     }
     setData(data, minmax) {
         super.setData(data, minmax);
@@ -1575,18 +1574,30 @@ class IncidenceData extends CustomData {
         const data = response.data;
         return new IncidenceData(data.id, data.data, data.meta, location ?? data.location);
     }
+    static isIncidenceValue(value) {
+        return value.date && !isNaN(value.date) && value.date_str;
+    }
+    static isIncidenceValueArray(array) {
+        for (const arrayElement of array) {
+            if (!IncidenceData.isIncidenceValue(arrayElement)) {
+                return false;
+            }
+        }
+        return true;
+    }
     static async loadFromCache(id, typeCheck, ...params) {
         const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
         if (resp.status !== DataStatus.OK || resp.isEmpty()) {
             return resp;
         }
         const incidenceData = IncidenceData.fromResponse(resp, ...params);
-        if (typeCheck(incidenceData)) {
-            return DataResponse.ok(incidenceData);
-        }
-        else {
+        if (!typeCheck(incidenceData)) {
             return DataResponse.error('Data loaded is of wrong type');
         }
+        if (!IncidenceData.isIncidenceValueArray(incidenceData.data)) {
+            return DataResponse.error('Data loaded has no IncidenceValues as Data');
+        }
+        return DataResponse.ok(incidenceData);
     }
     static async loadAreaFromCache(loc) {
         const respId = await CustomLocation.idFromCache(loc);
