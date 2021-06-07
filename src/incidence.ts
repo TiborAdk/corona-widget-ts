@@ -807,8 +807,10 @@ class StatusBlockStack extends CustomWidgetStack {
         let icon: string;
         let text: string;
         if (location && location.type === LocationType.CURRENT) {
-            if (dataStatus === DataStatus.OK || dataStatus === DataStatus.CACHED) {
+            if (dataStatus === DataStatus.OK) {
                 [icon, text] = UI.getLocStatusIconAndText(location.status, location.type);
+            } else if (dataStatus === DataStatus.CACHED) {
+                [icon, text] = UI.getLocStatusIconAndText(LocationStatus.CACHED, location.type);
             } else {
                 [icon, text] = UI.getStatusIconAndText(dataStatus);
             }
@@ -2043,6 +2045,19 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return new IncidenceData<T>(data.id, data.data, data.meta, location ?? data.location);
     }
 
+    static isIncidenceValue(value: { [key: string]: any }): value is IncidenceValue {
+        return value.date && !isNaN(value.date) && value.date_str
+    }
+
+    static isIncidenceValueArray(array: any[]): array is IncidenceValue[] {
+        for (const arrayElement of array) {
+            if (!IncidenceData.isIncidenceValue(arrayElement)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     static async loadFromCache<T extends MetaData>(id: string, typeCheck: (data: IncidenceData<T>) => data is IncidenceData<T>, ...params: any[]): Promise<DataResponse<IncidenceData<T>> | EmptyResponse> {
         const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
         if (resp.status !== DataStatus.OK || resp.isEmpty()) {
@@ -2050,11 +2065,13 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         }
         const incidenceData = IncidenceData.fromResponse<T>(resp, ...params);
 
-        if (typeCheck(incidenceData)) {
-            return DataResponse.ok(incidenceData);
-        } else {
+        if (!typeCheck(incidenceData)) {
             return DataResponse.error('Data loaded is of wrong type');
         }
+        if (!IncidenceData.isIncidenceValueArray(incidenceData.data)) {
+            return DataResponse.error('Data loaded has no IncidenceValues as Data');
+        }
+        return DataResponse.ok(incidenceData);
 
     }
 
@@ -3097,18 +3114,27 @@ class Helper {
     }
 
     static async updateConfig(path: string, url: string): Promise<void> {
+        console.log('updating config');
         const req = new Request(url);
         req.timeoutInterval = 10;
 
-        const data = await req.loadString();
-        const response = req.response;
-
-        if (response.statusCode !== 200) {
-            console.warn('loading config from web failed status: ' + response.statusCode);
+        let data;
+        try {
+            data = await req.loadString();
+        } catch (e) {
+            console.log('update config: failed')
+            console.warn(e);
             return;
         }
 
-        console.log('received config from repository');
+        const response = req.response;
+
+        if (response.statusCode !== 200) {
+            console.warn('update config: failed: ' + response.statusCode);
+            return;
+        }
+
+        console.log('update config: received config from repository');
         const cfg = JSON.parse(data);
 
         cfm.write(cfg, path, FileType.JSON);
@@ -3144,16 +3170,24 @@ class Helper {
             console.log(`updateScript: skip (last update less than ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
             return;
         }
-        console.log('updateScript: getting new script');
 
         const base_url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/';
         await Helper.updateConfig('.default', `${base_url}config.json`);
 
         const url = `${base_url}built/incidence.js`;
+        console.log('updateScript: getting new script');
+
         const request = new Request(url);
         request.timeoutInterval = 10;
 
-        const script = await request.loadString();
+        let script;
+        try {
+            script = await request.loadString();
+        } catch (e) {
+            console.log('updateScript: requesting script failed');
+            console.log(e);
+            return;
+        }
         const resp = request.response;
         if (!resp.statusCode || resp.statusCode !== 200) {
             console.warn('updateScript: aborting (error loading new script)');
@@ -3229,7 +3263,13 @@ class RkiService /*implements RkiServiceInterface*/ {
         const req = new Request(url);
         req.timeoutInterval = 20;
 
-        const data = await req.loadJSON();
+        let data;
+        try {
+            data = await req.loadJSON();
+        } catch (e) {
+            console.log(e);
+            return DataResponse.error('Error requesting data.')
+        }
         const response = req.response;
 
         if (response.statusCode !== undefined && response.statusCode === 200) {
@@ -3246,15 +3286,19 @@ class RkiService /*implements RkiServiceInterface*/ {
         const req = new Request(url);
         req.timeoutInterval = 20;
 
-        const data = await req.loadString();
+
+        let data;
+        try {
+            data = await req.loadString();
+        } catch (e) {
+            console.warn(e);
+            return DataResponse.error('Error requesting data.')
+        }
         return data.length > 0 ? new DataResponse<any>(data) : DataResponse.notFound();
     }
 
     async exec(url: string, type: RequestType = RequestType.JSON): Promise<DataResponse<{ [p: string]: any } | string> | EmptyResponse> {
         try {
-            const req = new Request(url);
-            req.timeoutInterval = 20;
-
             if (type === RequestType.JSON) {
                 return RkiService.execJson(url);
             } else if (type === RequestType.STRING) {
