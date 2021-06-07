@@ -86,7 +86,8 @@ const ENV = {
     cache: new Map(),
     script: {
         filename: this.module.filename.replace(/^.*[\\\/]/, ''),
-    }
+    },
+    version: "1.0"
 };
 var DataStatus;
 (function (DataStatus) {
@@ -2775,6 +2776,7 @@ class RkiService /*implements RkiServiceInterface*/ {
         return Helper.keysAreDefined(data, keys, 'ApiVaccinated');
     }
 }
+console.log(`Running version ${ENV.version}`);
 const cfm = new CustomFileManager(CFG.storage.directory, CFG.storage.fileStub);
 // @ts-ignore
 await Helper.loadConfig();

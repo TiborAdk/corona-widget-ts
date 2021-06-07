@@ -71,7 +71,8 @@ type Env = {
     states: Map<string, State>,
     script: {
         filename: string,
-    }
+    },
+    version: string,
 }
 
 const ENV: Env = {
@@ -111,7 +112,8 @@ const ENV: Env = {
     cache: new Map<any, any>(),
     script: {
         filename: this.module.filename.replace(/^.*[\\\/]/, ''),
-    }
+    },
+    version: "1.0"
 }
 
 enum DataStatus {
@@ -3480,6 +3482,7 @@ class RkiService /*implements RkiServiceInterface*/ {
 
 }
 
+console.log(`Running version ${ENV.version}`);
 const cfm = new CustomFileManager(CFG.storage.directory, CFG.storage.fileStub);
 // @ts-ignore
 await Helper.loadConfig();
