@@ -1391,7 +1391,6 @@ abstract class ListStack<S, T> extends CustomWidgetStack {
     protected items: T[];
     protected widgetSize: WidgetSize;
     protected maxLength?: number;
-    A
     protected dynamicSpacing: boolean;
 
     get length(): number {
@@ -1601,7 +1600,7 @@ class IncidenceListWidget extends CustomListWidget {
                 const maxValues = areaWithIncidence.getMax();
 
                 for (const maxKey in maxValues) {
-                    if (maxValues)
+                    if (maxValues.hasOwnProperty(maxKey)) {
                         if (!graphMinMax.max) {
                             graphMinMax.max = {};
                             graphMinMax.max[maxKey] = maxValues[maxKey];
@@ -1610,6 +1609,7 @@ class IncidenceListWidget extends CustomListWidget {
                         } else if (maxValues[maxKey] > graphMinMax.max[maxKey]) {
                             graphMinMax.max[maxKey] = maxValues[maxKey];
                         }
+                    }
                 }
 
                 return { status: status, data: areaWithIncidence, name: location.name };
