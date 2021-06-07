@@ -87,7 +87,7 @@ const ENV = {
     script: {
         filename: this.module.filename.replace(/^.*[\\\/]/, ''),
     },
-    version: "1.0"
+    version: "1.1.0"
 };
 var DataStatus;
 (function (DataStatus) {

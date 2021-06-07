@@ -113,7 +113,7 @@ const ENV: Env = {
     script: {
         filename: this.module.filename.replace(/^.*[\\\/]/, ''),
     },
-    version: "1.0"
+    version: "1.1.0"
 }
 
 enum DataStatus {
