@@ -857,11 +857,12 @@ class IncidenceContainer extends CustomWidgetStack {
         this.part1.textColor = color;
         if (incidence) {
             if (Math.round(incidence) < 100) {
-                const num = Math.floor(incidence);
-                const decimal = Math.abs(incidence) - num;
+                const _incidence = Math.round(incidence * 10 ) / 10;
+                const num = Math.floor(_incidence);
+                const decimal = Math.abs(_incidence) - num;
 
                 this.part0.text = '' + num;
-                this.part1.text = decimal > 0 ? Format.number(decimal, 1).substring(1) : '';
+                this.part1.text = decimal >= 0 ? Format.number(decimal, 1).substring(1): '';
             } else {
                 this.part0.text = '' + Math.round(incidence);
                 this.part1.text = ''
