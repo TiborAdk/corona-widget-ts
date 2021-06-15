@@ -239,10 +239,10 @@ class Incidence {
     static readonly DARKDARKRED: IncidenceLimit = { limit: 250, color: Colors.DARKDARKRED };
     static readonly DARKRED: IncidenceLimit = { limit: 100, color: Colors.DARKRED };
     static readonly RED: IncidenceLimit = { limit: 50, color: Colors.RED };
-    static readonly ORANGE: IncidenceLimit = { limit: 35, color: Colors.ORANGE };
-    static readonly YELLOW: IncidenceLimit = { limit: 25, color: Colors.YELLOW };
-    static readonly GREEN: IncidenceLimit = { limit: 1, color: Colors.GREEN };
-    static readonly GRAY: IncidenceLimit = { limit: 0, color: Colors.GRAY };
+    static readonly ORANGE: IncidenceLimit = {limit: 25, color: Colors.ORANGE};
+    static readonly YELLOW: IncidenceLimit = {limit: 5, color: Colors.YELLOW};
+    static readonly GREEN: IncidenceLimit = {limit: 0, color: Colors.GREEN};
+    static readonly GRAY: IncidenceLimit = {limit: Number.NEGATIVE_INFINITY, color: Colors.GRAY};
 }
 
 type Rdata = {

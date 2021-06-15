@@ -196,10 +196,10 @@ class Incidence {
 Incidence.DARKDARKRED = { limit: 250, color: Colors.DARKDARKRED };
 Incidence.DARKRED = { limit: 100, color: Colors.DARKRED };
 Incidence.RED = { limit: 50, color: Colors.RED };
-Incidence.ORANGE = { limit: 35, color: Colors.ORANGE };
-Incidence.YELLOW = { limit: 25, color: Colors.YELLOW };
-Incidence.GREEN = { limit: 1, color: Colors.GREEN };
-Incidence.GRAY = { limit: 0, color: Colors.GRAY };
+Incidence.ORANGE = { limit: 25, color: Colors.ORANGE };
+Incidence.YELLOW = { limit: 5, color: Colors.YELLOW };
+Incidence.GREEN = { limit: 0, color: Colors.GREEN };
+Incidence.GRAY = { limit: Number.NEGATIVE_INFINITY, color: Colors.GRAY };
 var WidgetFamily;
 (function (WidgetFamily) {
     WidgetFamily["SMALL"] = "small";
