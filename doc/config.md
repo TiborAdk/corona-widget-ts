@@ -56,6 +56,23 @@ Bestimmt, ob die Graphen kopfüber angezeigt werden sollen. (Werte werden quasi 
 * `false` (Standard): Normal
 * `true`: Kopfüber
 
+# Incidence
+
+Die `incidence` Einstellungen beeinflussen die Darstellung der Incidence und damit verbundene Werte.
+
+```json
+    "incidence": {
+    "trend": "week"
+  },
+```
+
+## trend
+
+Bestimmt, mit welchem Wert der aktuelle Inzidenzwert verglichen wird.
+
+* `"week"` (Standard) vergleicht den aktuellen Wert mit dem Wert vor einer Woche.
+* `"day"` vergleicht den aktuellen Wert mid dem Wert des letzten Tages.
+
 # Widget
 
 Die `widget` Einstellungen beeinflussen das Allgemeine Verhalten von Widgets.
