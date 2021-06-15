@@ -28,7 +28,8 @@ const CFG = {
         useShortName: true, // use short name of stateRow
     },
     incidence: {
-        disableLive: false // use the incidence value from the api
+        disableLive: false,
+        trend: "week",
     },
     geoCache: {
         accuracy: 2, // accuracy the gps staticCoords are cached with (0: 111 Km; 1: 11,1 Km; 2: 1,11 Km; 3: 111 m; 4: 11,1 m)
@@ -98,6 +99,11 @@ var DataStatus;
     DataStatus["NOT_FOUND"] = "not found}";
     DataStatus["API_ERROR"] = "api error";
 })(DataStatus || (DataStatus = {}));
+var IncidenceTrend;
+(function (IncidenceTrend) {
+    IncidenceTrend["DAY"] = "day";
+    IncidenceTrend["WEEK"] = "week";
+})(IncidenceTrend || (IncidenceTrend = {}));
 var TrendArrow;
 (function (TrendArrow) {
     TrendArrow["UP"] = "\u2191";
@@ -680,18 +686,19 @@ class IncidenceRowStackBase extends CustomWidgetStack {
         this.trendStack.setGraph(data, minmax);
         // this.graphImage.image = UI.generateGraph(data, this.graphSize, {}, maxValues, CFG.graph.showIndex, 'incidence', Align.RIGHT).getImage();
     }
-    setIncidence(data) {
+    setIncidence(data, incidenceTrend) {
         const incidence = data.getDay()?.incidence ?? 0; // TODO check default value
-        const incidence1 = data.getDay(1)?.incidence ?? 0;
+        const offset = incidenceTrend === IncidenceTrend.DAY ? 1 : 7;
+        const incidence1 = data.getDay(offset)?.incidence ?? 0;
         const arrow = UI.getTrendArrow(incidence, incidence1);
         this.incidenceContainer.setIncidence(incidence);
         this.incidenceContainer.setArrow(arrow);
     }
-    setData(data, minmax) {
+    setData(data, incidenceTrend, minmax) {
         const meta = data.meta;
         this.setName(this.mapMeta2Name(meta));
         this.setCases(data.getDay()?.cases);
-        this.setIncidence(data);
+        this.setIncidence(data, incidenceTrend);
         this.setGraph(data.data, minmax);
     }
     mapMeta2Name(meta) {
@@ -718,15 +725,15 @@ class IncidenceVaccineRowStackBase extends IncidenceRowStackBase {
         this.setVaccineQuote(data.quote);
         //this.setVaccineQuote2nd(data.second_vaccination.quote);
     }
-    setData(data, minmax) {
-        super.setData(data, minmax);
+    setData(data, incidenceTrend, minmax) {
+        super.setData(data, incidenceTrend, minmax);
         if (data.meta.vaccine) {
             this.setVaccineData(data.meta.vaccine);
         }
     }
 }
 class SmallIncidenceRowStack extends IncidenceVaccineRowStackBase {
-    constructor(stack, data, minmax, bgColor = '#99999915') {
+    constructor(stack, data, incidenceTrend, minmax, bgColor = '#99999915') {
         super(stack, Layout.HORIZONTAL, bgColor, undefined, 8, [2, 0, 1, 4]);
         this.textColor = '#999999';
         const ht = 12;
@@ -759,12 +766,14 @@ class SmallIncidenceRowStack extends IncidenceVaccineRowStackBase {
         vaccineStack.addSpacer(1);
         this.vaccineQuote2ndText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.5 });
         if (data) {
-            this.setData(data, minmax);
+            if (!incidenceTrend)
+                console.warn('incidenceTrend not set');
+            this.setData(data, incidenceTrend ?? IncidenceTrend.WEEK, minmax);
         }
     }
 }
 class SmallIncidenceBlockStack extends IncidenceRowStackBase {
-    constructor(stack, data, minmax) {
+    constructor(stack, data, incidenceTrend, minmax) {
         super(stack, Layout.VERTICAL, '#99999915', undefined, 8, [2, 0, 2, 4]);
         this.textColor = '#777777';
         const row0 = this.addStack({ layout: Layout.HORIZONTAL });
@@ -782,7 +791,9 @@ class SmallIncidenceBlockStack extends IncidenceRowStackBase {
             graphResizable: false,
         });
         if (data) {
-            this.setData(data, minmax);
+            if (!incidenceTrend)
+                console.log('incidenceTrend not set');
+            this.setData(data, incidenceTrend ?? IncidenceTrend.WEEK, minmax);
         }
     }
     mapMeta2Name(meta) {
@@ -803,7 +814,7 @@ class HeaderStack extends CustomWidgetStack {
         }
         else {
             // add GER block
-            this.smallIncidenceRow = new SmallIncidenceRowStack(this.addStack(), undefined, undefined, '#99999900');
+            this.smallIncidenceRow = new SmallIncidenceRowStack(this.addStack(), undefined, undefined, undefined, '#99999900');
             this.smallIncidenceRow.mapMeta2Name = function (meta) {
                 return meta.short ?? meta.name;
             };
@@ -845,12 +856,12 @@ class HeaderStack extends CustomWidgetStack {
             console.warn('Status cannot be set. Widget is not small.');
         }
     }
-    setCountryData(data) {
+    setCountryData(data, incidenceTrend) {
         if (this.isSmall) {
             console.warn('CountryData cannot be set. Widget is small.');
         }
         else {
-            this.smallIncidenceRow.setData(data);
+            this.smallIncidenceRow.setData(data, incidenceTrend);
         }
     }
 }
@@ -873,7 +884,7 @@ class AreaIconStack extends CustomWidgetStack {
     }
 }
 class AreaRowStack extends IncidenceRowStackBase {
-    constructor(stack, widgetSize, data, status, name, minmax, padding, cornerRadius = 10, elemDepth) {
+    constructor(stack, widgetSize, data, incidenceTrend, status, name, minmax, padding, cornerRadius = 10, elemDepth) {
         const isSmall = CustomListWidget.isSmall(widgetSize);
         super(stack, Layout.VERTICAL, undefined, undefined, cornerRadius);
         this.elementDepth = elemDepth;
@@ -922,7 +933,9 @@ class AreaRowStack extends IncidenceRowStackBase {
         if (status)
             this.setStatus(status, data?.location);
         if (data) {
-            this.setData(data, minmax);
+            if (!incidenceTrend)
+                console.warn('incidenceTrend not set');
+            this.setData(data, incidenceTrend ?? IncidenceTrend.WEEK, minmax);
             const meta = data.meta;
             const areaName = name && name.length > 0 ? name : meta.name;
             this.setName(areaName);
@@ -939,14 +952,14 @@ class AreaRowStack extends IncidenceRowStackBase {
     setAreaIBZ(areaIBZ) {
         this.areaIconStack.setAreaIBZ(areaIBZ);
     }
-    setData(data, minmax) {
-        super.setData(data, minmax);
+    setData(data, incidenceTrend, minmax) {
+        super.setData(data, incidenceTrend, minmax);
         this.setAreaIBZ(data.meta.IBZ);
     }
 }
 class AreaErrorRowStack extends AreaRowStack {
     constructor(stack, widgetSize, status, name, padding, cornerRadius, elemDepth) {
-        super(stack, widgetSize, undefined, status, name, undefined, padding, cornerRadius, elemDepth);
+        super(stack, widgetSize, undefined, undefined, status, name, undefined, padding, cornerRadius, elemDepth);
     }
     addDummyData() {
         let dummyGraphData = [];
@@ -959,7 +972,7 @@ class AreaErrorRowStack extends AreaRowStack {
     }
 }
 class StateRowStack extends IncidenceVaccineRowStackBase {
-    constructor(stack, data, minmax, bgColor, padding) {
+    constructor(stack, data, incidenceTrend, minmax, bgColor, padding) {
         super(stack, Layout.HORIZONTAL, bgColor, undefined, undefined, padding);
         this.textColor = '#888888';
         this.graphSize = new Size(84, 16); //new Size(71, 11);
@@ -979,30 +992,35 @@ class StateRowStack extends IncidenceVaccineRowStackBase {
         this.vaccineQuoteText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
         this.vaccineQuote2ndText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.8 });
         this.vaccinatedText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
-        if (data)
-            this.setData(data, minmax);
+        if (data) {
+            if (!incidenceTrend)
+                console.warn('incidenceTrend not set');
+            this.setData(data, incidenceTrend ?? IncidenceTrend.WEEK, minmax);
+        }
     }
-    setData(data, minmax) {
-        super.setData(data, minmax);
+    setData(data, incidenceTrend, minmax) {
+        super.setData(data, incidenceTrend, minmax);
         if (data.meta.vaccine) {
             this.setVaccineData(data.meta.vaccine);
         }
     }
 }
 class MultiAreaRowStack extends CustomWidgetStack {
-    constructor(stack, widgetSize, elementDepth, dataRows, state, minmax) {
+    constructor(stack, widgetSize, elementDepth, dataRows, state, incidenceTrend, minmax) {
         const bgColor = UI.elementDepth2BgColor(elementDepth);
         super(stack, { layout: Layout.VERTICAL, cornerRadius: 10, spacing: 1, bgColor });
         this.elementDepth = elementDepth;
         this.widgetSize = widgetSize;
         this.areas = new Map();
-        this.stateStack = new StateRowStack(this.addStack(), state, minmax, undefined, [2, 4, 2, 4]);
+        this.stateStack = new StateRowStack(this.addStack(), state, incidenceTrend, minmax, undefined, [2, 4, 2, 4]);
         this.areaStacks = this.addStack({ layout: Layout.VERTICAL, spacing: 1 });
         if (dataRows) {
-            this.addAreas(dataRows, minmax);
+            if (!incidenceTrend)
+                console.warn('incidenceTrend not set');
+            this.addAreas(dataRows, incidenceTrend ?? IncidenceTrend.WEEK, minmax);
         }
     }
-    setArea(dataRow) {
+    setArea(dataRow, incidenceTrend) {
         const areaData = dataRow.data;
         if (!areaData) {
             console.warn('MultiAreaRowStack.setArea: dataRow has no data.');
@@ -1014,11 +1032,11 @@ class MultiAreaRowStack extends CustomWidgetStack {
             console.warn(`Area with id ${id} has not been added. Use addArea instead.`);
             return;
         }
-        areaStack.setData(areaData);
+        areaStack.setData(areaData, incidenceTrend);
         areaStack.setStatus(dataRow.status);
         // TODO set name
     }
-    addArea(dataRow, minmax) {
+    addArea(dataRow, incidenceTrend, minmax) {
         const areaData = dataRow.data;
         if (!areaData) {
             console.warn('MultiAreaRowStack.addArea: dataRow has no data.');
@@ -1028,14 +1046,14 @@ class MultiAreaRowStack extends CustomWidgetStack {
         let areaStack = this.areas.get(id);
         if (areaStack) {
             console.log(`Area with id ${id} already added. Updating data.`);
-            return this.setArea(dataRow);
+            return this.setArea(dataRow, incidenceTrend);
         }
         const padding = CustomListWidget.isSmall(this.widgetSize) ? [4, 4, 4, 4] : [2, 4, 2, 4];
-        areaStack = new AreaRowStack(this.areaStacks.addStack(), this.widgetSize, dataRow.data, dataRow.status, dataRow.name, minmax, padding, 0, this.elementDepth + 1);
+        areaStack = new AreaRowStack(this.areaStacks.addStack(), this.widgetSize, dataRow.data, incidenceTrend, dataRow.status, dataRow.name, minmax, padding, 0, this.elementDepth + 1);
         this.areas.set(id, areaStack);
     }
-    addAreas(dataRows, minmax) {
-        dataRows.forEach(row => this.addArea(row, minmax));
+    addAreas(dataRows, incidenceTrend, minmax) {
+        dataRows.forEach(row => this.addArea(row, incidenceTrend, minmax));
     }
 }
 class ListStack extends CustomWidgetStack {
@@ -1084,89 +1102,90 @@ class ListStack extends CustomWidgetStack {
     }
 }
 class AreaListStack extends CustomWidgetStack {
-    constructor(stack, widgetSize, dataRows = [], minmax) {
+    constructor(stack, widgetSize, incidenceTrend, dataRows = [], minmax) {
         super(stack, { layout: Layout.VERTICAL, cornerRadius: 10, spacing: 2, });
         this.widgetSize = widgetSize;
         this.elementDepth = 0;
-        this.addAreas(dataRows, minmax);
+        this.addAreas(dataRows, incidenceTrend, minmax);
     }
-    addAreas(dataRows, minmax) {
-        dataRows.forEach(dataRow => this.addArea(dataRow, minmax));
+    addAreas(dataRows, incidenceTrend, minmax) {
+        dataRows.forEach(dataRow => this.addArea(dataRow, incidenceTrend, minmax));
     }
-    addArea(dataRow, minmax) {
+    addArea(dataRow, incidenceTrend, minmax) {
         const data = dataRow.data;
         const status = dataRow.status;
         const padding = CustomListWidget.isSmall(this.widgetSize) ? [4, 4, 4, 4] : [2, 4, 2, 4];
         const childDepth = this.elementDepth + 1;
         if (DataResponse.isSuccess(status) && data !== undefined) {
-            new AreaRowStack(this.addStack(), this.widgetSize, data, status, dataRow.name, minmax, padding, 10, childDepth);
+            new AreaRowStack(this.addStack(), this.widgetSize, data, incidenceTrend, status, dataRow.name, minmax, padding, 10, childDepth);
         }
         else {
             console.warn('Area can not be displayed. status: ' + status);
             new AreaErrorRowStack(this.addStack(), this.widgetSize, status, undefined, padding, 10, childDepth);
         }
     }
-    addMultiArea(areaRows, state, minmax) {
-        new MultiAreaRowStack(this.addStack(), this.widgetSize, this.elementDepth + 1, areaRows, state, minmax);
+    addMultiArea(areaRows, state, incidenceTrend, minmax) {
+        new MultiAreaRowStack(this.addStack(), this.widgetSize, this.elementDepth + 1, areaRows, state, incidenceTrend, minmax);
     }
-    addMultiAreas(multiRows, minmax) {
-        multiRows.forEach(row => this.addMultiArea(row.areaRows, row.state, minmax));
+    addMultiAreas(multiRows, incidenceTrend, minmax) {
+        multiRows.forEach(row => this.addMultiArea(row.areaRows, row.state, incidenceTrend, minmax));
     }
 }
 class StatesRowStack extends ListStack {
-    constructor(stack, widgetSize, spacing, states = [], minmax) {
+    constructor(stack, widgetSize, spacing, states = [], incidenceTrend, minmax) {
         super(stack, widgetSize, Layout.HORIZONTAL, spacing, 2);
         this.items = [];
         this.stateBackgroundColor = Colors.BACKGROUND2;
-        this.addItems(states, minmax);
+        this.addItems(states, incidenceTrend, minmax);
     }
-    createItem(data, spacing, minmax) {
+    createItem(data, incidenceTrend, minmax) {
         if (CustomListWidget.isSmall(this.widgetSize)) {
-            return new SmallIncidenceBlockStack(this.addStack({ bgColor: Colors.BACKGROUND2 }), data, minmax);
+            return new SmallIncidenceBlockStack(this.addStack({ bgColor: Colors.BACKGROUND2 }), data, incidenceTrend, minmax);
         }
         else {
-            return new SmallIncidenceRowStack(this.addStack({ bgColor: Colors.BACKGROUND2 }), data, minmax);
+            return new SmallIncidenceRowStack(this.addStack({ bgColor: Colors.BACKGROUND2 }), data, incidenceTrend, minmax);
         }
     }
-    addState(data, minmax) {
-        this.addItem(data, undefined, minmax);
+    addState(data, incidenceTrend, IncidenceTrend, minmax) {
+        this.addItem(data, undefined, incidenceTrend, minmax);
     }
-    addStates(data, minmax) {
-        this.addItems(data, minmax);
+    addStates(data, incidenceTrend, minmax) {
+        this.addItems(data, incidenceTrend, minmax);
     }
 }
 class StateListStack extends ListStack {
-    constructor(stack, widgetSize, states = [], minmax) {
+    constructor(stack, widgetSize, states, incidenceTrend, minmax) {
         super(stack, widgetSize, Layout.VERTICAL, 4);
         this.statesPerRow = 2;
-        this.addStates(states, minmax);
+        this.addStates(states, incidenceTrend, minmax);
     }
-    addState(data, minmax) {
+    addState(data, incidenceTrend, minmax) {
         for (const stateRowStack of this.items) {
             if (stateRowStack.length >= this.statesPerRow) {
                 continue;
             }
-            stateRowStack.addState(data, minmax);
+            stateRowStack.addState(data, incidenceTrend, minmax);
             return;
         }
-        this.addItem([data], undefined, minmax);
+        this.addItem([data], undefined, incidenceTrend, minmax);
     }
-    addStates(data, minmax) {
+    addStates(data, incidenceTrend, minmax) {
         for (const datum of data) {
-            this.addState(datum, minmax);
+            this.addState(datum, incidenceTrend, minmax);
         }
     }
-    createItem(data, minmax) {
-        return new StatesRowStack(this.addStack(), this.widgetSize, -1, data, minmax);
+    createItem(data, incidenceTrend, minmax) {
+        return new StatesRowStack(this.addStack(), this.widgetSize, -1, data, incidenceTrend, minmax);
     }
 }
 class IncidenceListWidget extends CustomListWidget {
-    constructor(api, parameters, family, coords = [], showVaccine = false, useAlternateLarge = false) {
+    constructor(api, parameters, family, coords = [], showVaccine = false, useAlternateLarge = false, incidenceTrend = IncidenceTrend.WEEK) {
         super(parameters, family);
         this.api = api;
         this.locations = [...CustomLocation.fromWidgetParameters(this.parameters), ...coords];
         this.showVaccine = showVaccine;
         this.alternateLarge = useAlternateLarge;
+        this.incidenceTrend = incidenceTrend;
         if (!this.family)
             this.setSizeByParameterCount(this.locations.length);
         this.backgroundColor = Colors.BACKGROUND;
@@ -1246,7 +1265,7 @@ class IncidenceListWidget extends CustomListWidget {
         }
         if (this.isLarge() && this.alternateLarge) {
             const multiRows = Helper.aggregateToMultiRows(areaRows, states, 10);
-            this.areaListStack.addMultiAreas(multiRows, graphMinMax);
+            this.areaListStack.addMultiAreas(multiRows, this.incidenceTrend, graphMinMax);
         }
         else if (this.isLarge() && !this.alternateLarge) {
             this.addAreas(areaRows.slice(0, 6), graphMinMax);
@@ -1268,28 +1287,28 @@ class IncidenceListWidget extends CustomListWidget {
         return new HeaderStack(this.addStack(), this.size, '🦠');
     }
     addAreaRowsStack() {
-        return new AreaListStack(this.addStack(), this.size);
+        return new AreaListStack(this.addStack(), this.size, this.incidenceTrend);
     }
     addStateRowsStack() {
-        return new StateListStack(this.addStack(), this.size);
+        return new StateListStack(this.addStack(), this.size, [], this.incidenceTrend);
     }
     setStatus(dataStatus, location) {
         this.header.setStatus(dataStatus, location);
     }
     addArea(status, data, name, minmax) {
-        this.areaListStack.addArea({ status, data, name }, minmax);
+        this.areaListStack.addArea({ status, data, name }, this.incidenceTrend, minmax);
     }
     addAreas(dataRows, minmax, showVaccine = false) {
-        this.areaListStack.addAreas(dataRows, minmax);
+        this.areaListStack.addAreas(dataRows, this.incidenceTrend, minmax);
     }
     addStates(states, minmax) {
-        this.stateList.addStates(states, minmax);
+        this.stateList.addStates(states, this.incidenceTrend, minmax);
     }
     setCountry(country) {
         this.header.setRValue(country.meta.r.r);
         this.header.setDateText(country.getDay()?.date);
         if (!this.isSmall())
-            this.header.setCountryData(country);
+            this.header.setCountryData(country, this.incidenceTrend);
     }
 }
 class UI {
@@ -2788,7 +2807,7 @@ await Helper.updateScript();
 const defaultSmall = '';
 const defaultMedium = '0;1,52.02,8.54';
 const defaultLarge = '0; 1,52.02,8.54; 2,48.11,11.60; 3,50.94,7.00; 4,50.11,8.67; 5,48.78,9.19; 6,51.22,6.77';
-const widget = new IncidenceListWidget(new RkiService(), args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge);
+const widget = new IncidenceListWidget(new RkiService(), args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge, IncidenceTrend[CFG.incidence.trend]);
 // @ts-ignore
 Script.setWidget(await widget.init());
 Script.complete();

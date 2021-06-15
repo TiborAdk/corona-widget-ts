@@ -23,7 +23,8 @@
     "useShortName": true
   },
   "incidence": {
-    "disableLive": false
+    "disableLive": false,
+    "trend": "1d"
   },
   "geoCache": {
     "accuracy": 2
