@@ -1161,8 +1161,9 @@ class StateListStack extends ListStack {
     }
 }
 class IncidenceListWidget extends CustomListWidget {
-    constructor(parameters, family, coords = [], showVaccine = false, useAlternateLarge = false) {
+    constructor(api, parameters, family, coords = [], showVaccine = false, useAlternateLarge = false) {
         super(parameters, family);
+        this.api = api;
         this.locations = [...CustomLocation.fromWidgetParameters(this.parameters), ...coords];
         this.showVaccine = showVaccine;
         this.alternateLarge = useAlternateLarge;
@@ -1185,7 +1186,7 @@ class IncidenceListWidget extends CustomListWidget {
     }
     async fillWidget() {
         this.header.setTypeText(CFG.graph.showIndex);
-        const [respGer] = await Promise.all([IncidenceData.loadCountry('GER', this.showVaccine)]);
+        const [respGer] = await Promise.all([IncidenceData.loadCountry(this.api, 'GER', this.showVaccine)]);
         if (respGer.succeeded() && !respGer.isEmpty()) {
             const dataGer = IncidenceData.calcIncidence(respGer.data);
             this.setCountry(dataGer);
@@ -1193,7 +1194,7 @@ class IncidenceListWidget extends CustomListWidget {
         // AREAS
         const graphMinMax = { min: { incidence: 0, cases: 0 }, max: { incidence: 0, cases: 0 } };
         const areaRows = await Promise.all(this.locations.map(async (location) => {
-            const respArea = await IncidenceData.loadArea(location);
+            const respArea = await IncidenceData.loadArea(this.api, location);
             const status = respArea.status;
             if (!respArea.succeeded() || respArea.isEmpty()) {
                 console.warn('Loading Area failed. Status: ' + status);
@@ -1234,7 +1235,7 @@ class IncidenceListWidget extends CustomListWidget {
             const id = meta.BL_ID;
             if (processed[id])
                 continue; // skip duplicated areaRows
-            const resp = await IncidenceData.loadState(id, meta.BL, meta.EWZ_BL, this.showVaccine);
+            const resp = await IncidenceData.loadState(this.api, id, meta.BL, meta.EWZ_BL, this.showVaccine);
             if (!resp.isEmpty() && resp.succeeded()) {
                 states.push(IncidenceData.calcIncidence(resp.data));
                 processed[id] = true;
@@ -1652,12 +1653,12 @@ class IncidenceData extends CustomData {
         dataObject.data = reversedData.reverse();
         return dataObject;
     }
-    static async loadVaccine(name) {
+    static async loadVaccine(api, name) {
         const cached = ENV.cacheVaccines.get(name ?? 'GER');
         if (cached !== undefined) {
             return new DataResponse(cached);
         }
-        const data = await rkiService.vaccineData();
+        const data = await api.vaccineData();
         if (typeof data === 'boolean') {
             return DataResponse.error();
         }
@@ -1683,7 +1684,7 @@ class IncidenceData extends CustomData {
         ENV.cacheVaccines.set(name ?? 'GER', vaccineData);
         return new DataResponse(vaccineData);
     }
-    static async loadCountry(code, loadVaccine = false) {
+    static async loadCountry(api, code, loadVaccine = false) {
         const cached = ENV.cacheCountries.get(code);
         if (cached !== undefined) {
             return new DataResponse(cached);
@@ -1698,13 +1699,13 @@ class IncidenceData extends CustomData {
         else {
             console.log(`${logPre}: cache lifetime exceeded`);
         }
-        const cases = await rkiService.casesGer();
+        const cases = await api.casesGer();
         if (typeof cases === 'boolean') {
             return DataResponse.error();
         }
         let vaccine;
         if (loadVaccine) {
-            const resVac = await IncidenceData.loadVaccine();
+            const resVac = await IncidenceData.loadVaccine(api);
             if (!resVac.succeeded() || resVac.isEmpty()) {
                 console.warn('Loading vaccine data failed');
                 vaccine = undefined;
@@ -1716,7 +1717,7 @@ class IncidenceData extends CustomData {
         const meta = {
             name: 'Deutschland',
             short: 'GER',
-            r: await rkiService.rData(),
+            r: await api.rData(),
             EWZ: 83166711,
             vaccine: vaccine
         };
@@ -1725,7 +1726,7 @@ class IncidenceData extends CustomData {
         ENV.cacheCountries.set(code, data);
         return new DataResponse(data);
     }
-    static async loadArea(loc) {
+    static async loadArea(api, loc) {
         const location = await CustomLocation.getLocation(loc);
         if (location.status === LocationStatus.FAILED) {
             console.log(`Getting location failed (${loc.latitude},${loc.longitude}). Trying to load from cache...`);
@@ -1747,7 +1748,7 @@ class IncidenceData extends CustomData {
             console.log('Cache lifetime exceeded, trying to update data...');
         }
         // get information for area
-        const info = await rkiService.locationData(location);
+        const info = await api.locationData(location);
         if (!info) {
             const msg = `Getting meta data failed (${loc.latitude} ${loc.longitude})`;
             if (cachedData) {
@@ -1760,7 +1761,7 @@ class IncidenceData extends CustomData {
         }
         const id = info.RS;
         // get cases for area
-        const cases = await rkiService.casesArea(id);
+        const cases = await api.casesArea(id);
         if (typeof cases === 'boolean') {
             const msg = `Getting cases failed (${id})`;
             if (cachedData) {
@@ -1790,7 +1791,7 @@ class IncidenceData extends CustomData {
         await data.save();
         return new DataResponse(data);
     }
-    static async loadState(id, name, ewz, loadVaccine = false) {
+    static async loadState(api, id, name, ewz, loadVaccine = false) {
         const applicationCached = ENV.cacheStates.get(id);
         if (typeof applicationCached !== 'undefined') {
             return new DataResponse(applicationCached);
@@ -1804,7 +1805,7 @@ class IncidenceData extends CustomData {
         else {
             console.log(`${logPre}: cache lifetime exceeded, trying to update data...`);
         }
-        const cases = await rkiService.casesState(id);
+        const cases = await api.casesState(id);
         if (typeof cases === 'boolean') {
             const msg = `${logPre}: Getting state failed`;
             console.log(`${msg}, using cached data`);
@@ -1818,7 +1819,7 @@ class IncidenceData extends CustomData {
         name = ENV.states.get(id)?.name ?? name;
         let vaccine = undefined;
         if (loadVaccine) {
-            const respVac = await IncidenceData.loadVaccine(name);
+            const respVac = await IncidenceData.loadVaccine(api, name);
             if (respVac.succeeded() && !respVac.isEmpty()) {
                 vaccine = respVac.data;
             }
@@ -2784,11 +2785,10 @@ const cfm = new CustomFileManager(CFG.storage.directory, CFG.storage.fileStub);
 await Helper.loadConfig();
 // @ts-ignore
 await Helper.updateScript();
-const rkiService = new RkiService();
 const defaultSmall = '';
 const defaultMedium = '0;1,52.02,8.54';
 const defaultLarge = '0; 1,52.02,8.54; 2,48.11,11.60; 3,50.94,7.00; 4,50.11,8.67; 5,48.78,9.19; 6,51.22,6.77';
-const widget = new IncidenceListWidget(args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge);
+const widget = new IncidenceListWidget(new RkiService(), args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge);
 // @ts-ignore
 Script.setWidget(await widget.init());
 Script.complete();
