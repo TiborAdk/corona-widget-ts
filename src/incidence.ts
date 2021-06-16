@@ -4,47 +4,40 @@
 
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 
-const CFG = {
-    cache: {
-        maxAge: 3600, // maximum age of items in the cache. (in seconds) Younger items wont be updated with  data from the rki-api.
-    },
-    storage: {
-        directory: 'corona_widget_ts',
-        fileStub: 'coronaWidget_',
-    },
-    graph: {
-        maxShownDays: 28,   // number of days shown in graphs
-        upsideDown: false,  // show graphs upside down (0 is top, max is bottom, default is: 0 at bottom and max at the top)
-        showIndex: 'incidence', // values used for the graph. 'cases' for cases or 'incidence' for incidence
-    },
-    api: {
-        csvRvalueField: ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes', 'Schไtzer_7_Tage_R_Wert', 'Punktschไtzer des 7-Tage-R Wertes'], // numbered field (column), because of possible encoding changes in columns names on each update
-    },
-    widget: {
-        refreshInterval: 3600,  // interval the widget is updated after (in seconds),
+const CFG: Config = {
+    version: '1.2.0',
+    autoUpdate: true, // whether the script should update it self
+    autoUpdateInterval: 1, // how often the script should update it self (in days)
+    geoCacheAccuracy: 1, // accuracy the gps staticCoords are cached with (0: 111 Km; 1: 11,1 Km; 2: 1,11 Km; 3: 111 m; 4: 11,1 m)
+    def: {
+        cacheMaxAge: 3600, // maximum age of items in the cache. (in seconds) Younger items wont be updated with data from the rki-api.
+
+        maxShownDays: 28, // number of days shown in graphs
+        graphUpsideDown: false, // show graphs upside down (0 is top, max is bottom, default is: 0 at bottom and max at the top)
+        graphShowIndex: 'incidence', // values used for the graph. 'cases' for cases or 'incidence' for incidence
+
+
+        stateUseShortName: true, // use short name of stateRow
+
+        refreshInterval: 3600, // interval the widget is updated after (in seconds),
         openUrlOnTap: false, // open url on tap
         openUrl: "https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4",
         alternateLarge: false, // use alternative layout ofr large stack
 
+        incidenceDisableLive: false, // use the incidence value from the api
+        showVaccine: true, // show the data regarding the vaccination. Small widget wont show this information.
     },
-    state: {
-        useShortName: true, // use short name of stateRow
-    },
-    incidence: {
-        disableLive: false, // use the incidence value from the api
-        trend: "week",
-    },
-    geoCache: {
-        accuracy: 2, // accuracy the gps staticCoords are cached with (0: 111 Km; 1: 11,1 Km; 2: 1,11 Km; 3: 111 m; 4: 11,1 m)
-    },
-    vaccine: {
-        show: true, // show the data regarding the vaccination. Small widget wont show this information.
-    },
-    script: {
-        autoUpdate: true, // whether the script should update it self
-        autoUpdateInterval: 1, // how often the script should update it self (in days)
-    }
+    widgets: {},
 }
+
+const VERSION = '1.2.0';
+const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
+const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
+const DIR_DEV = 'corona_widget_dev';
+const FILE_DEV = 'dev';
+const DIR = 'corona_widget_ts';
+const FILE = 'corona_widget';
+const CSV_RVALUE_FIELDS: string[] = ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes', 'Schไtzer_7_Tage_R_Wert', 'Punktschไtzer des 7-Tage-R Wertes'];
 
 type State = {
     short: string,
@@ -77,7 +70,7 @@ type Env = {
 }
 
 const ENV: Env = {
-    state: { nameIndex: CFG.state.useShortName ? 'short' : 'name' },
+    state: {nameIndex: CFG.def.stateUseShortName ? 'short' : 'name'},
     areaIBZ: new Map([
         [40, AreaType.KS], // Kreisfreie Stadt
         [41, AreaType.SK], // Stadtkreis
@@ -694,7 +687,10 @@ abstract class CustomListWidget extends StackLikeWrapper<ListWidget> implements 
 
     abstract fillWidget(): Promise<void>;
 
+    abstract setup(): Promise<void>;
+
     async init(): Promise<ListWidget> {
+        await this.setup();
         await this.fillWidget();
 
         // this.setPadding(0);
@@ -912,7 +908,7 @@ class HistoryCasesStack extends CustomWidgetStack {
     }
 
     setGraph(data: IncidenceGraphData[], minmax?: IncGraphMinMax): void {
-        this.graphImage.image = UI.generateGraph(data, this.graphSize, minmax, CFG.graph.showIndex, 'incidence', Align.RIGHT).getImage();
+        this.graphImage.image = UI.generateGraph(data, this.graphSize, minmax, CFG.def.graphShowIndex, 'incidence', Align.RIGHT).getImage();
     }
 
     set graphResizable(resizable: boolean) {
@@ -945,7 +941,7 @@ abstract class IncidenceRowStackBase extends CustomWidgetStack {
 
     setGraph(data: IncidenceGraphData[], minmax?: IncGraphMinMax): void {
         this.trendStack.setGraph(data, minmax);
-        // this.graphImage.image = UI.generateGraph(data, this.graphSize, {}, maxValues, CFG.graph.showIndex, 'incidence', Align.RIGHT).getImage();
+        // this.graphImage.image = UI.generateGraph(data, this.graphSize, {}, maxValues, CFG.def.graphShowIndex, 'incidence', Align.RIGHT).getImage();
     }
 
     setIncidence(data: IncidenceData<MetaCountry | MetaState>, incidenceTrend: IncidenceTrend): void {
@@ -1557,21 +1553,18 @@ class StateListStack extends ListStack<IncidenceData<MetaState | MetaCountry>[],
 
 class IncidenceListWidget extends CustomListWidget {
     protected locations: CustomLocation[];
+    private config: WidgetConfig;
+    private incidenceTrend: IncidenceTrend;
     private readonly header: HeaderStack;
     private readonly areaListStack: AreaListStack;
     private readonly stateList: StateListStack;
-    private readonly showVaccine: boolean;
-    private readonly alternateLarge: boolean;
-    private readonly incidenceTrend: IncidenceTrend;
     private readonly api: RkiService;
 
-    constructor(api: RkiService, parameters: string, family: string, coords: CustomLocation[] = [], showVaccine: boolean = false, useAlternateLarge: boolean = false, incidenceTrend: IncidenceTrend = IncidenceTrend.WEEK) {
+    constructor(api: RkiService, parameters: string, family: string, coords: CustomLocation[] = [], cfg: WidgetConfig) {
         super(parameters, family);
         this.api = api;
         this.locations = [...CustomLocation.fromWidgetParameters(this.parameters), ...coords];
-        this.showVaccine = showVaccine;
-        this.alternateLarge = useAlternateLarge;
-        this.incidenceTrend = incidenceTrend;
+        this.config = cfg;
 
         if (!this.family) this.setSizeByParameterCount(this.locations.length);
 
@@ -1594,11 +1587,15 @@ class IncidenceListWidget extends CustomListWidget {
 
     }
 
+    async setup(): Promise<void> {
+        this.incidenceTrend = this.config.graphShowIndex === "incidence" ? IncidenceTrend.DAY : IncidenceTrend.WEEK;
+    }
+
     async fillWidget(): Promise<void> {
-        this.header.setTypeText(CFG.graph.showIndex);
-        const [respGer] = await Promise.all([IncidenceData.loadCountry(this.api, 'GER', this.showVaccine)]);
+        this.header.setTypeText(CFG.def.graphShowIndex);
+        const [respGer] = await Promise.all([IncidenceData.loadCountry(this.api, 'GER', this.config.showVaccine)]);
         if (respGer.succeeded() && !respGer.isEmpty()) {
-            const dataGer = IncidenceData.calcIncidence(respGer.data);
+            const dataGer = IncidenceData.calcIncidence(respGer.data, this.config.incidenceDisableLive);
             this.setCountry(dataGer);
         }
 
@@ -1614,7 +1611,7 @@ class IncidenceListWidget extends CustomListWidget {
                         return {status: status};
                     }
                     const area = respArea.data;
-                    const areaWithIncidence = IncidenceData.calcIncidence(area);
+                    const areaWithIncidence = IncidenceData.calcIncidence(area, this.config.incidenceDisableLive);
 
                     const maxValues = areaWithIncidence.getMax();
 
@@ -1654,20 +1651,20 @@ class IncidenceListWidget extends CustomListWidget {
             const meta = row.data.meta;
             const id = meta.BL_ID;
             if (processed[id]) continue; // skip duplicated areaRows
-            const resp = await IncidenceData.loadState(this.api, id, meta.BL, meta.EWZ_BL, this.showVaccine);
+            const resp = await IncidenceData.loadState(this.api, id, meta.BL, meta.EWZ_BL, this.config.showVaccine);
 
             if (!resp.isEmpty() && resp.succeeded()) {
-                states.push(IncidenceData.calcIncidence(resp.data));
+                states.push(IncidenceData.calcIncidence(resp.data, this.config.incidenceDisableLive));
                 processed[id] = true;
             } else {
                 console.warn(`Loading state failed. status: ${resp.status}`);
             }
         }
 
-        if (this.isLarge() && this.alternateLarge) {
+        if (this.isLarge() && this.config.alternateLarge) {
             const multiRows = Helper.aggregateToMultiRows(areaRows, states, 10);
             this.areaListStack.addMultiAreas(multiRows, this.incidenceTrend, graphMinMax);
-        } else if (this.isLarge() && !this.alternateLarge) {
+        } else if (this.isLarge() && !this.config.alternateLarge) {
             this.addAreas(areaRows.slice(0, 6), graphMinMax);
             this.addStates(states);
         } else {
@@ -1678,8 +1675,8 @@ class IncidenceListWidget extends CustomListWidget {
         }
 
         // UI ===
-        if (CFG.widget.openUrlOnTap) this.url = CFG.widget.openUrl;
-        this.refreshAfterDate = new Date(Date.now() + CFG.widget.refreshInterval * 1000);
+        if (this.config.openUrlOnTap) this.url = this.config.openUrl;
+        this.refreshAfterDate = new Date(Date.now() + this.config.refreshInterval * 1000);
     }
 
     private addTopBar(): HeaderStack {
@@ -1724,7 +1721,7 @@ interface IncidenceValue extends IncidenceGraphData {
 
 class UI {
     static generateGraph(data: any[], size: Size, minmax: IncGraphMinMax = {}, valueIndex: string = 'cases', colorIndex: string = 'incidence',
-        align: Align = Align.LEFT, upsideDown: boolean = CFG.graph.upsideDown): DrawContext {
+                         align: Align = Align.LEFT, upsideDown: boolean = CFG.def.graphUpsideDown): DrawContext {
         const context = new DrawContext();
         context.size = size;
         context.opaque = false;
@@ -1738,7 +1735,7 @@ class UI {
         // const minHeight = 10; // minimum height of the graph
 
         let showLen = Math.floor((width + spacing) / (minW + spacing));
-        showLen = Math.min(data.length, CFG.graph.maxShownDays, showLen);
+        showLen = Math.min(data.length, CFG.def.maxShownDays, showLen);
         const iOffset = data.length - showLen;
 
         const values = data.slice(iOffset).map(o => o[valueIndex]);
@@ -2117,7 +2114,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
 
     static completeHistory(data: IncidenceValue[], offset?: number, last?: Date | number | string): IncidenceValue[] {
-        offset = offset ?? CFG.graph.maxShownDays + 7;
+        offset = offset ?? CFG.def.maxShownDays + 7;
 
         const lastDateHistory = new Date(last ?? data[data.length - 1].date).getTime();
         const completed: { [key: string]: IncidenceValue } = {};
@@ -2139,16 +2136,16 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return completeData.reverse();
     }
 
-    static calcIncidence<T extends MetaData>(dataObject: IncidenceData<T>): IncidenceData<T> {
+    static calcIncidence<T extends MetaData>(dataObject: IncidenceData<T>, disableLive: boolean = CFG.def.incidenceDisableLive): IncidenceData<T> {
         const reversedData = dataObject.data.reverse();
-        for (let i = 0; i < CFG.graph.maxShownDays; i++) {
+        for (let i = 0; i < CFG.def.maxShownDays; i++) {
             const theDays = reversedData.slice(i + 1, i + 1 + 7); // without today
             const sumCasesLast7Days = theDays.reduce((a, b) => a + (b.cases ?? 0), 0);
             reversedData[i].incidence = (sumCasesLast7Days / dataObject.meta.EWZ) * 100000;
         }
 
         const data = (dataObject as any)
-        if (CFG.incidence.disableLive && typeof data.meta.cases7_per_100k !== 'undefined') {
+        if (disableLive && typeof data.meta.cases7_per_100k !== 'undefined') {
             reversedData[0].incidence = data.meta.cases7_per_100k
         }
 
@@ -2195,7 +2192,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return new DataResponse(vaccineData);
     }
 
-    static async loadCountry(api: RkiService, code: string, loadVaccine: boolean = false): Promise<DataResponse<IncidenceData<MetaCountry>> | EmptyResponse> {
+    static async loadCountry(api: RkiService, code: string, loadVaccine: boolean = false, cacheMaxAge: number = CFG.def.cacheMaxAge): Promise<DataResponse<IncidenceData<MetaCountry>> | EmptyResponse> {
         const cached = ENV.cacheCountries.get(code);
         if (cached !== undefined) {
             return new DataResponse(cached);
@@ -2205,7 +2202,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         // GER DATA
         const {cachedData, cachedAge} = await IncidenceData.loadCached(code, IncidenceData.loadCountryFromCache);
 
-        if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 3600) {
+        if (cachedData && cachedAge && cachedAge < cacheMaxAge * 3600) {
             console.log(`${logPre}: using cached data`);
             return DataResponse.ok(cachedData);
         } else {
@@ -2241,7 +2238,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return new DataResponse(data);
     }
 
-    static async loadArea(api: RkiService, loc: CustomLocation): Promise<| DataResponse<IncidenceData<MetaArea>> | EmptyResponse> {
+    static async loadArea(api: RkiService, loc: CustomLocation, cacheMaxAge: number = CFG.def.cacheMaxAge): Promise<| DataResponse<IncidenceData<MetaArea>> | EmptyResponse> {
         const location = await CustomLocation.getLocation(loc);
 
         if (location.status === LocationStatus.FAILED) {
@@ -2258,7 +2255,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         // load data from cache. If its fresh enough we return it
         const { cachedData, cachedAge } = await IncidenceData.loadCached(location, IncidenceData.loadAreaFromCache);
 
-        if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 1000) {
+        if (cachedData && cachedAge && cachedAge < cacheMaxAge * 1000) {
             console.log('Using cached data')
             return DataResponse.ok(cachedData);
         } else {
@@ -2315,7 +2312,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
     }
 
 
-    static async loadState(api: RkiService, id: string, name: string, ewz: number, loadVaccine: boolean = false): Promise<DataResponse<IncidenceData<MetaState>> | EmptyResponse> {
+    static async loadState(api: RkiService, id: string, name: string, ewz: number, loadVaccine: boolean = false, cacheMaxAge: number = CFG.def.cacheMaxAge): Promise<DataResponse<IncidenceData<MetaState>> | EmptyResponse> {
         const applicationCached = ENV.cacheStates.get(id);
         if (typeof applicationCached !== 'undefined') {
             return new DataResponse(applicationCached);
@@ -2325,7 +2322,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
         const {cachedData, cachedAge} = await this.loadCached(id, IncidenceData.loadStateFromCache);
 
-        if (cachedData && cachedAge && cachedAge < CFG.cache.maxAge * 1000) {
+        if (cachedData && cachedAge && cachedAge < cacheMaxAge * 1000) {
             console.log(`${logPre}: using cached data`)
             return new DataResponse(cachedData);
         } else {
@@ -2657,11 +2654,11 @@ class CustomLocation implements CustomLocationInterface {
     }
 
     static async geoCache({ latitude, longitude, type }: CustomLocation, id: string): Promise<void> {
-        const lat = latitude.toFixed(CFG.geoCache.accuracy);
-        const lon = longitude.toFixed(CFG.geoCache.accuracy);
+        const lat = latitude.toFixed(CFG.geoCacheAccuracy);
+        const lon = longitude.toFixed(CFG.geoCacheAccuracy);
         const key: string = lat + ',' + lon;
 
-        const resp = await cfm.read('/coronaWidget_geo', FileType.JSON);
+        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON);
         let data: { [key: string]: string };
         if (resp.status === DataStatus.NOT_FOUND) {
             console.log('GeoCache does not exist. File will be created...');
@@ -2674,13 +2671,13 @@ class CustomLocation implements CustomLocationInterface {
 
         const current = data[key];
         if (current !== undefined && current !== id) {
-            console.warn(`Cached value for '${key}' at accuracy ${CFG.geoCache.accuracy} differs from new value. (${current} !== ${id})`);
+            console.warn(`Cached value for '${key}' at accuracy ${CFG.geoCacheAccuracy} differs from new value. (${current} !== ${id})`);
         }
 
         if (type === LocationType.CURRENT) data['gps'] = key;
         data[key] = id;
 
-        await cfm.write(data, '/coronaWidget_geo', FileType.JSON);
+        await cfm.write(data, `${cfm.filestub}_geo`, FileType.JSON);
     }
 
     static async idFromCache({
@@ -2689,7 +2686,7 @@ class CustomLocation implements CustomLocationInterface {
         type
     }: CustomLocation): Promise<DataResponse<string> | EmptyResponse> {
 
-        const resp = await cfm.read('/coronaWidget_geo', FileType.JSON);
+        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON);
         if (resp.status !== DataStatus.OK) {
             console.log('Error loading geoCache file.');
             return DataResponse.error();
@@ -2704,14 +2701,14 @@ class CustomLocation implements CustomLocationInterface {
                 DataResponse.notFound();
             }
         } else {
-            const _lat = latitude.toFixed(CFG.geoCache.accuracy);
-            const _lon = longitude.toFixed(CFG.geoCache.accuracy);
+            const _lat = latitude.toFixed(CFG.geoCacheAccuracy);
+            const _lon = longitude.toFixed(CFG.geoCacheAccuracy);
             _key = _lat + ',' + _lon;
         }
 
         const id = data[_key];
         if (id === undefined) {
-            console.log(`No value for '${_key}' at accuracy ${CFG.geoCache.accuracy}.`);
+            console.log(`No value for '${_key}' at accuracy ${CFG.geoCacheAccuracy}.`);
             return DataResponse.notFound();
         }
 
@@ -2993,7 +2990,7 @@ class Format {
         // find used key
         let rValueField;
         Object.keys(parsedData[0]).forEach(key => {
-            CFG.api.csvRvalueField.forEach(possibleRKey => {
+            CSV_RVALUE_FIELDS.forEach(possibleRKey => {
                 if (key === possibleRKey) rValueField = possibleRKey;
             });
         });
@@ -3093,18 +3090,65 @@ class Helper {
         return multiRows.getMultiRows();
     }
 
-    static mergeConfig(target: { [k: string]: { [k: string]: any } }, source: { [k: string]: { [k: string]: any } }, skipKeys: string[] = []): void {
+    static mergeConfig(target: Config, source: { [k: string]: { [k: string]: any } }, skipKeys: string[] = []): void {
         for (const key in source) {
             if (skipKeys.includes(key)) {
                 console.log('skipping key ' + key);
                 continue;
             }
-            if (key in target) {
-                target[key] = { ...target[key], ...source[key] };
+
+            if (typeof target[key] === "object") {
+                if (key in target) {
+                    target[key] = {...target[key], ...source[key]};
+                } else {
+                    target[key] = source[key];
+                }
             } else {
                 target[key] = source[key];
             }
         }
+    }
+
+    static async migrateConfig(path: string = 'config.json', target?: string): Promise<void> {
+        function helper<T>(src: { [key: string]: any } | undefined, target: T, keys: ([string, string] | [string])[]): T {
+            if (!src) return target;
+            for (const k of keys) {
+                if (src[k[0]] !== undefined) {
+                    target[k[1] ?? k[0]] = src[k[0]];
+                }
+            }
+            return target;
+        }
+
+        if (!cfm.fileExists(path)) {
+            return;
+        }
+        const resp = await cfm.read(path, FileType.JSON);
+        if (!(resp.status === DataStatus.OK && !resp.isEmpty())) {
+            console.log('config already migrated');
+            return;
+        }
+        const old = resp.data;
+        let migrated: ConfigOpt = {
+            version: '1.2.0',
+            def: {}
+        };
+        if (old.version && old.version === migrated.version) {
+            console.log('config already migrated');
+            return;
+        }
+
+        migrated = helper(old.script, migrated, [['autoUpdate'], ['autoUpdateInterval']]);
+        migrated = helper(old.api, migrated, [['csvRvalueField']]);
+        migrated = helper(old.geoCache, migrated, [['accuracy', 'geoCacheAccuracy']]);
+        migrated.def = helper(old.graph, migrated.def, [['maxShownDays'], ['upsideDown', 'graphUpsideDown'], ['showIndex', 'graphShowIndex']]);
+        migrated.def = helper(old.cache, migrated.def, [['maxAge', 'cacheMaxAge']]);
+        migrated.def = helper(old.widget, migrated.def, [['refreshInterval'], ['openUrlOnTap'], ['openUrl'], ['alternatelarge']]);
+        migrated.def = helper(old.state, migrated.def, [['useShortName', 'stateUseShorName']]);
+        migrated.def = helper(old.incidence, migrated.def, [['disableLive', 'incidenceDisableLive']]);
+        migrated.def = helper(old.vaccine, migrated.def, [['show', 'showVaccine']]);
+
+        cfm.write(migrated, target ?? path, FileType.JSON);
     }
 
     static async loadConfig(path: string = 'config.json', path_default: string = '.default.json') {
@@ -3113,8 +3157,8 @@ class Helper {
         } else {
             const resp = await cfm.read(path_default, FileType.JSON);
             if (resp.status === DataStatus.OK && !resp.isEmpty()) {
-                const cfg_default : { [key: string]: { [key: string]: any } } = resp.data;
-                Helper.mergeConfig(CFG, cfg_default, ['storage']);
+                const cfg_default: { [key: string]: { [key: string]: any } } = resp.data;
+                Helper.mergeConfig(CFG, cfg_default);
             } else {
                 console.warn('error reading defaults');
             }
@@ -3127,7 +3171,7 @@ class Helper {
             if (resp.status === DataStatus.OK && !resp.isEmpty()) {
                 console.log('Config loaded successfully.');
                 const cfg: { [key: string]: { [key: string]: any } } = resp.data;
-                Helper.mergeConfig(CFG, cfg, ['storage']);
+                Helper.mergeConfig(CFG, cfg);
             } else {
                 console.warn('error reading config');
             }
@@ -3164,7 +3208,7 @@ class Helper {
 
     static async updateScript() {
         const currentDate = new Date();
-        const { autoUpdateInterval, autoUpdate } = CFG.script;
+        const {autoUpdateInterval, autoUpdate} = CFG;
 
         if (!autoUpdate) {
             console.log('updateScript: skip (disabled)')
@@ -3192,13 +3236,11 @@ class Helper {
             return;
         }
 
-        const base_url = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/';
-        await Helper.updateConfig('.default', `${base_url}config.json`);
+        await Helper.updateConfig('.default', HTTP_CONFIG);
 
-        const url = `${base_url}built/incidence.js`;
         console.log('updateScript: getting new script');
 
-        const request = new Request(url);
+        const request = new Request(HTTP_SCRIPT);
         request.timeoutInterval = 10;
 
         let script;
@@ -3353,14 +3395,14 @@ class RkiService /*implements RkiServiceInterface*/ {
     }
 
     async casesArea(id: string): Promise<false | IncidenceValue[]> {
-        const apiStartDate = Helper.getDateBefore(CFG.graph.maxShownDays + 7);
+        const apiStartDate = Helper.getDateBefore(CFG.def.maxShownDays + 7);
         const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,-1)%20AND%20IdLandkreis%3D${id}&objectIds&time&resultType=standard&outFields&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields&groupByFieldsForStatistics&outStatistics=%5B%7B%22statisticType%22:%22sum%22,%22onStatisticField%22:%22AnzahlFall%22,%22outStatisticFieldName%22:%22cases%22%7D,%20%7B%22statisticType%22:%22max%22,%22onStatisticField%22:%22MeldeDatum%22,%22outStatisticFieldName%22:%22date%22%7D%5D&having&resultOffset&resultRecordCount&sqlFormat=none&token`
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdLandkreis=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`
         return await this.getCases(urlToday, urlHistory);
     }
 
     async casesGer(): Promise<false | IncidenceValue[]> {
-        const apiStartDate = Helper.getDateBefore(CFG.graph.maxShownDays + 7);
+        const apiStartDate = Helper.getDateBefore(CFG.def.maxShownDays + 7);
         let urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,-1)&returnGeometry=false&geometry=42.000,12.000&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelWithin&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22,%22onStatisticField%22%3A%22AnzahlFall%22,%22outStatisticFieldName%22%3A%22cases%22%7D%5D&resultType=standard&cacheHint=true`;
         urlToday += `&groupByFieldsForStatistics=MeldeDatum`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`;
@@ -3368,7 +3410,7 @@ class RkiService /*implements RkiServiceInterface*/ {
     }
 
     async casesState(id: string): Promise<false | IncidenceValue[]> {
-        const apiStartDate = Helper.getDateBefore(CFG.graph.maxShownDays + 7);
+        const apiStartDate = Helper.getDateBefore(CFG.def.maxShownDays + 7);
         const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,%20-1)+AND+IdBundesland=${id}&objectIds=&time=&resultType=standard&outFields=&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22,%22onStatisticField%22%3A%22AnzahlFall%22,%22outStatisticFieldName%22%3A%22cases%22%7D%5D&having=&resultOffset=&resultRecordCount=&sqlFormat=none&token=`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdBundesland=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`
         return await this.getCases(urlToday, urlHistory);
@@ -3501,8 +3543,10 @@ class RkiService /*implements RkiServiceInterface*/ {
 
 }
 
-console.log(`Running version ${ENV.version}`);
-const cfm = new CustomFileManager(CFG.storage.directory, CFG.storage.fileStub);
+console.log(`Version: ${VERSION}`);
+const cfm = new CustomFileManager(DIR, FILE);
+// @ts-ignore
+await Helper.migrateConfig();
 // @ts-ignore
 await Helper.loadConfig();
 // @ts-ignore
@@ -3512,7 +3556,7 @@ const defaultSmall: string = '';
 const defaultMedium: string = '0;1,52.02,8.54';
 const defaultLarge: string = '0; 1,52.02,8.54; 2,48.11,11.60; 3,50.94,7.00; 4,50.11,8.67; 5,48.78,9.19; 6,51.22,6.77';
 
-const widget = new IncidenceListWidget(new RkiService(), args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.vaccine.show, CFG.widget.alternateLarge, IncidenceTrend[CFG.incidence.trend]);
+const widget = new IncidenceListWidget(new RkiService(), args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.def);
 // @ts-ignore
 Script.setWidget(await widget.init());
 Script.complete();

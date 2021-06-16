@@ -12,6 +12,8 @@ Mein ursprüngliches Repository (js): [TiborAdk/corona-widget](https://github.co
 Ursprüngliches repository
 von [rphl](https://github.com/rphl): [rphl/corona-widget](https://github.com/rphl/corona-widget)
 
+If you want to fork this widget and create your own of it, please read this [doc](doc/dev.md).
+
 # Features
 
 * **Live Inzidenz** + **Trend** für Stadt/Kreis, Bundesland, Bund

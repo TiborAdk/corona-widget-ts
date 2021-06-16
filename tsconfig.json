@@ -6,12 +6,14 @@
     "sourceMap": true,
     "outDir": "./built",
     "strictNullChecks": true,
-    "noFallthroughCasesInSwitch": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "./src/incidence.ts"
+    "./src/incidence.ts",
+    "src/Config.d.ts",
+    "src/WidgetConfig.d.ts"
   ],
   "exclude": [
-    "./node_modules",
+    "./node_modules"
   ]
 }

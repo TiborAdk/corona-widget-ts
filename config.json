@@ -1,39 +1,27 @@
 {
-  "cache": {
-    "maxAge": 3600
-  },
-  "graph": {
+  "version": "1.2.0",
+  "autoUpdate": true,
+  "autoUpdateInterval": 2,
+  "csvRvalueField": [
+    "Schätzer_7_Tage_R_Wert",
+    "Punktschätzer des 7-Tage-R Wertes"
+  ],
+  "geoCacheAccuracy": 2,
+  "def": {
+    "cacheMaxAge": 3600,
+
     "maxShownDays": 28,
-    "upsideDown": false,
-    "showIndex": "incidence"
-  },
-  "api": {
-    "csvRvalueField": [
-      "Schätzer_7_Tage_R_Wert",
-      "Punktschätzer des 7-Tage-R Wertes"
-    ]
-  },
-  "widget": {
+    "graphUpsideDown": false,
+    "graphShowIndex": "incidence",
+
+    "stateUseShortName": true,
+
     "refreshInterval": 3600,
     "openUrlOnTap": false,
     "openUrl": "https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4",
-    "alternateLarge": false
-  },
-  "state": {
-    "useShortName": true
-  },
-  "incidence": {
-    "disableLive": false,
-    "trend": "1d"
-  },
-  "geoCache": {
-    "accuracy": 2
-  },
-  "vaccine": {
-    "show": true
-  },
-  "script": {
-    "autoUpdate": true,
-    "autoUpdateInterval": 1
+    "alternateLarge": false,
+
+    "incidenceDisableLive": false,
+    "showVaccine": true
   }
 }

@@ -1,90 +1,113 @@
 # Corona-Widget erweiterte Konfiguration
 
 Das Widget kann über die Datei `config.json` im Ordner des Widgets konfiguriert werden. Falls die Datei nicht existiert,
-wird sie beim Ausführen des Widgets erstellt und mit einem leeren Object gefüllt.
-Es reicht wenn nur Werte eingetragen werden, die von den [Standardwerten](../config.json) abweichen.
+wird sie beim Ausführen des Widgets erstellt und mit einem leeren Objekt gefüllt.
+
+Es müssen nur Werte eingetragen werden, die von den [Standardwerten](../config.json) abweichen.
 
 # Speicherort
 
 Die Datei befindet sich im selben Ordner, in dem auch die Daten für die Standorte zwischengespeichert werden.
-Standardmäßig ist sie damit im Ordner `iCloudDrive/Scriptable/corona_widget_ts/` zu finden.
+Standardmäßig ist sie im Ordner `iCloudDrive/Scriptable/corona_widget_ts/` zu finden.
 
-Die Datei kann zum Beispiel mit [Jayson](https://apps.apple.com/de/app/jayson/id1447750768) oder bearbeitet werden.
+Die Datei kann zum Beispiel mit [Jayson](https://apps.apple.com/de/app/jayson/id1447750768) bearbeitet werden.
 
-# Cache
+# Script
 
-``` json
-    "cache": {
-        "maxAge": 3600
-    },
+Einstellungen die das Script betreffen. Sie können nicht für einzelnen Widgets unterschiedlich gesetzt werden, sondern sind für jedes gleich.
+
+```json
+{
+  "autoUpdate": true,
+  "autoUpdateInterval": 2,
+  "csvRvalueField": [
+    "Schätzer_7_Tage_R_Wert",
+    "Punktschätzer des 7-Tage-R Wertes"
+  ],
+  "geoCacheAccuracy": 2,
+  "def": {  
+    ...
+  }
+}
 ```
 
-Die `cache` Einstellungen beinhalten Einstellungen die das Zwischenspeichern von Daten beeinflussen
+## autoUpdate
 
-## maxAge
+Bestimmt, ob das Script selbständig aktualisiert werden soll.
+
+* `true` *(Standard)*: Aktiviert
+* `false`: Deaktiviert
+
+## autoUpdateInterval
+
+Eine positive Zahl, die das Zeitintervall in Tagen bestimmt, in dem das Script versucht sich zu aktualisieren.
+
+* Standard: `1` (1 Tag)
+
+## geoCacheAccuracy
+
+Bestimmt die Genauigkeit mit der GPS-Daten zwischengespeichert werden sollen.
+
+* `0`: 111 Km
+* `1`: 11,1 Km
+* `2` *(Standard)*: 1,11 Km
+* `3`: 111 m
+* `4`: 11,1 m
+
+# Globale Konfiguration von Widgets
+
+Unter `def` können Standard Werte für Widgets gesetzt werden. Diese werden auf Widgets angewendet, sofern diese nicht von
+der Konfiguration eines Widgets überschrieben werden.
+
+Es müssen nur Werte eingetragen werden, die von den [Standardwerten](../config.json) abweichen.
+
+```json
+    "def": {
+        "cacheMaxAge": 3600,
+        "maxShownDays": 28,
+        "graphUpsideDown": false,
+        "graphShowIndex": "incidence",
+        "stateUseShortName": true,
+        "refreshInterval": 3600,
+        "openUrlOnTap": false,
+        "openUrl": "https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4",
+        "alternateLarge": false,
+        "incidenceTrend": "day",
+        "incidenceDisableLive": false,
+        "showVaccine": true
+    },
+    ...
+```
+
+## cacheMaxAge
 
 Eine positive ganze Zahl, die die maximale Zeit in Sekunden beschreibt, in der gespeicherte Daten wiederverwendet werden
-können, bevor die Daten erneut von der API abgerufen werden. 0 deaktiviert das Zwischenspeichern von Daten und sie werden, immer
-neu von der API geladen.
+können, bevor die Daten erneut von der API abgerufen werden. 0 deaktiviert das Zwischenspeichern von Daten und sie
+werden immer neu von der API geladen.
 
 * Deaktiviert: `0`
 * Standard: `3600` (1h)
 
-# Graph
-
-Die `graph` Einstellungen nehmen Einfluss auf das Aussehen und die Anzahl angezeigter Werte in den verwendeten Graphen
-aller Widgets.
-
-```json
-    "graph": {
-    "maxShownDays": 28,
-    "upsideDown": false,
-    }
-```
-
-## maxShownDays
+## graphMaxShownDays
 
 Eine ganze Zahl größer 6, die die maximale Anzahl angezeigter Werte der Graphen beschreibt. Die tatsächliche Anzahl
 angezeigter Werte kann geringer sein, da diese auch vom vorhandenem Platz abhängen, aber nie größer.
 
 * Standard: `28`
 
-## upsideDown
+## graphUpsideDown
 
 Bestimmt, ob die Graphen kopfüber angezeigt werden sollen. (Werte werden quasi mit -1 multipliziert.)
 
-* `false` (Standard): Normal
+* `false` *(Standard)*: Normal
 * `true`: Kopfüber
 
-# Incidence
+## graphShowIndex
 
-Die `incidence` Einstellungen beeinflussen die Darstellung der Incidence und damit verbundene Werte.
+Bestimmt, ob die Inzidenz oder die Zahl der Fälle für den Graphen verwendet werden.
 
-```json
-    "incidence": {
-    "trend": "week"
-  },
-```
-
-## trend
-
-Bestimmt, mit welchem Wert der aktuelle Inzidenzwert verglichen wird.
-
-* `"week"` (Standard) vergleicht den aktuellen Wert mit dem Wert vor einer Woche.
-* `"day"` vergleicht den aktuellen Wert mid dem Wert des letzten Tages.
-
-# Widget
-
-Die `widget` Einstellungen beeinflussen das Allgemeine Verhalten von Widgets.
-
-```json
-    "widget": {
-        "refreshInterval": 3600,
-        "openUrl": "https://corona.rki.de",
-        "openUrlOnTap": false,
-        "alternatLarge": false,
-    },
-```
+* `"incidence"` *(Standard)*: Zeigt Inzidenz
+* `"cases"`: Zeigt Anzahl der Fälle
 
 ## refreshInterval
 
@@ -93,75 +116,44 @@ Das tatsächliche Interval kann dabei jedoch variieren, da das Betriebssystem be
 
 * Standard: `3600`
 
+## stateUseShortName
+
+Verwendet für Bundesländer die Abkürzungen anstelle des Names.
+
+* `true` *(Standard)*: Verwendet Abkürzung.
+* `false`: Verwendet Name.
+
 ## openUrl
 
 Ein Text, der eine Url darstellt, die geöffnet werden soll, wenn auf das Widget gedrückt wird.
-`widget.OpenUrlOnTap` muss dabei `true` sein, damit diese Einstellung einen effekt hat.
+`OpenUrlOnTap` muss dabei `true` sein, damit diese Einstellung einen effekt hat.
 
 * Standard: `"https://corona.rki.de"`
 
 ## openUrlOnTap
 
-Bestimmt, ob die url in `widget.openUrl` geöffnet werden soll, wenn auf das Widget gedrückt wird.
+Bestimmt, ob die url in `openUrl` geöffnet werden soll, wenn auf das Widget gedrückt wird.
 
-* `false` (Standard).
+* `false` *(Standard)*.
 * `true`: Url wird geöffnet.
 
 ## alternateLarge
 
 Bestimmt, ob bei großen Widgets die alternative Anzeige From verwendet werden soll.
 
-* Standard: `false`
+* `false` *(Standard)*
 * `true`: Verwendet alternatives Widget.
 
-# Script
+## incidenceDisableLive
 
-Die `script` Einstellungen, kontrollieren das Allgemeine Verhalten des Skriptes.
+Deaktiviert die Berechnung der Live-Inzidenz und verwendet die Inzidenz aus der API des RKIs.
 
-```json
-    "script": {
-        "scriptAutoUpdate": true
-    }, 
-```
+* `false` *(Standard)*
+* `true`: Verwendet Inzidenz aus der API.
 
-## autoUpdate
+## showVaccine
 
-Bestimmt, ob das Skript sich automatisch aktualisieren soll oder nicht.
+Aktiviert die Anzeige für die Impfdaten. Diese ist nur nicht im kleinen Widget verfügbar.
 
-* Deaktiviert: `false`
-* Standard: `true`
-
-## autoUpdateInterval
-
-Eine positive Zahl, die das Zeitintervall in Tagen bestimmt, in dem das Script versucht sich zu aktualisieren.
-
-* Standard: `1` (1 Tag)
-
-# Storage
-
-Die `storage` Einstellungen beeinflussen, den Speicherort der zwischengespeicherten Dateien und wie diese benannt werden. \
-**ACHTUNG**: Diese Einstellungen können **NICHT** über die Konfigurationsdatei geändert werden, sondern nur direkt im Skript. \
-**ACHTUNG**: Die Werte werden durch ein Update des Skriptes auf den Standardwert des Skriptes gesetzt. Es ist ratsam diese Einstellungen nicht zu ändern!
-
-```json
-    "storage": {
-        "directory": "corona_widget_ts",
-        "fileStub": "coronaWidget_"
-    },
-```
-
-## directory
-
-Ordner in dem die Dateien des Skriptes zwischengespeichert werden. Der Dateipfad liegt dabei immer innerhalb des Dateiordners von Scriptable. \
-**ACHTUNG**: Kann nicht über die Konfigurationsdatei gesetzt werden, sondern nur direkt über das Script. \
-**ACHTUNG**: Wird durch ein Update des Skriptes auf den Standardwert des Skriptes gesetzt.
-
-* Standard: `"corna_widget_ts"`
-
-## fileStub
-
-Ein Text, der als Basis für die Benennung der zwischengespeicherten Daten dient. \
-**ACHTUNG**: Kann nicht über die Konfigurationsdatei gesetzt werden, sondern nur direkt über das Script. \
-**ACHTUNG**: Wird durch ein Update des Skriptes auf den Standardwert des Skriptes gesetzt.
-
-* Standard: `"coronaWidget"`
+* `true` *(Standard)*: Zeigt Impfdaten
+* `false`: Deaktiviert
