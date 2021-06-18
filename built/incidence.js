@@ -1254,7 +1254,7 @@ class IncidenceListWidget extends CustomListWidget {
             }
         }
         if (this.isLarge() && this.config.alternateLarge) {
-            const multiRows = Helper.aggregateToMultiRows(areaRows, states, 10);
+            const multiRows = Helper.aggregateToMultiRows(areaRows, states, 8);
             this.areaListStack.addMultiAreas(multiRows, this.incidenceTrend, graphMinMax);
         }
         else if (this.isLarge() && !this.config.alternateLarge) {
