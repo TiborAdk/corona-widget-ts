@@ -18,7 +18,7 @@ const CFG = {
         showIndex: 'incidence', // values used for the graph. 'cases' for cases or 'incidence' for incidence
     },
     api: {
-        csvRvalueField: ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes'], // numbered field (column), because of possible encoding changes in columns names on each update
+        csvRvalueField: ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes', 'Schไtzer_7_Tage_R_Wert', 'Punktschไtzer des 7-Tage-R Wertes'], // numbered field (column), because of possible encoding changes in columns names on each update
     },
     widget: {
         refreshInterval: 3600,  // interval the widget is updated after (in seconds),
