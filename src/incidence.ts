@@ -3398,7 +3398,8 @@ class RkiService /*implements RkiServiceInterface*/ {
         const apiStartDate = Helper.getDateBefore(CFG.def.maxShownDays + 7);
         const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,-1)%20AND%20IdLandkreis%3D${id}&objectIds&time&resultType=standard&outFields&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields&groupByFieldsForStatistics&outStatistics=%5B%7B%22statisticType%22:%22sum%22,%22onStatisticField%22:%22AnzahlFall%22,%22outStatisticFieldName%22:%22cases%22%7D,%20%7B%22statisticType%22:%22max%22,%22onStatisticField%22:%22MeldeDatum%22,%22outStatisticFieldName%22:%22date%22%7D%5D&having&resultOffset&resultRecordCount&sqlFormat=none&token`
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdLandkreis=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`
-        return await this.getCases(urlToday, urlHistory);
+        const hist = await this.getCases(urlToday, urlHistory);
+        return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
     }
 
     async casesGer(): Promise<false | IncidenceValue[]> {
@@ -3406,14 +3407,18 @@ class RkiService /*implements RkiServiceInterface*/ {
         let urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,-1)&returnGeometry=false&geometry=42.000,12.000&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelWithin&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22,%22onStatisticField%22%3A%22AnzahlFall%22,%22outStatisticFieldName%22%3A%22cases%22%7D%5D&resultType=standard&cacheHint=true`;
         urlToday += `&groupByFieldsForStatistics=MeldeDatum`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`;
-        return await this.getCases(urlToday, urlHistory);
+        const hist = await this.getCases(urlToday, urlHistory);
+        return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
+
     }
 
     async casesState(id: string): Promise<false | IncidenceValue[]> {
         const apiStartDate = Helper.getDateBefore(CFG.def.maxShownDays + 7);
         const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,%20-1)+AND+IdBundesland=${id}&objectIds=&time=&resultType=standard&outFields=&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22,%22onStatisticField%22%3A%22AnzahlFall%22,%22outStatisticFieldName%22%3A%22cases%22%7D%5D&having=&resultOffset=&resultRecordCount=&sqlFormat=none&token=`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdBundesland=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`
-        return await this.getCases(urlToday, urlHistory);
+        const hist =  await this.getCases(urlToday, urlHistory);
+        return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
+
     }
 
     async getCases(urlToday: string, urlHistory: string): Promise<false | IncidenceValue[]> {
@@ -3434,6 +3439,7 @@ class RkiService /*implements RkiServiceInterface*/ {
             if (features.length > 0) {
                 todayCases = features.reduce((a, b) => a + b.attributes.cases, 0);
                 lastDateToday = Math.max(...resToday.data.features.map(a => a.attributes[keyCases]));
+                if (isNaN(lastDateToday)) lastDateToday = new Date().setHours(0, 0, 0, 0);
                 dataToday = {
                     cases: todayCases,
                     date: lastDateToday,
@@ -3462,7 +3468,10 @@ class RkiService /*implements RkiServiceInterface*/ {
                 if (!lastDateToday || new Date(lastDateToday).setHours(0, 0, 0, 0) <= new Date(lastDateHistory).setHours(0, 0, 0, 0)) {
                     const lastReportDate = new Date(lastDateHistory);
                     lastDate = lastReportDate.setDate(lastReportDate.getDate() + 1);
+                }else{
+                    lastDate = lastDateToday; // lastDateToday is defined and the latest date
                 }
+
                 dataToday = {
                     cases: todayCases,
                     date: lastDate,
@@ -3471,11 +3480,11 @@ class RkiService /*implements RkiServiceInterface*/ {
             } else {
                 console.warn(`Unexpected response format for resHistory. \nurl: ${urlHistory}\nreply:${JSON.stringify(resHistory)})`);
             }
-
         }
 
         const data: IncidenceValue[] = dataToday !== undefined ? [...dataHist, dataToday] : dataHist;
-        return IncidenceData.completeHistory(data);
+        data.sort((a, b) => a.date - b.date);
+        return data;
     }
 
     async locationData({ latitude, longitude }: { latitude: number; longitude: number }): Promise<false | ApiMetaArea> {
