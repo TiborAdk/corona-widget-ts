@@ -37,7 +37,7 @@ const DIR_DEV = 'corona_widget_dev';
 const FILE_DEV = 'dev';
 const DIR = 'corona_widget_ts';
 const FILE = 'corona_widget';
-const CSV_RVALUE_FIELDS: string[] = ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes', 'Schไtzer_7_Tage_R_Wert', 'Punktschไtzer des 7-Tage-R Wertes'];
+const CSV_RVALUE_FIELDS: string[] = ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes', 'Schไtzer_7_Tage_R_Wert', 'Punktschไtzer des 7-Tage-R Wertes', 'PS_7_Tage_R_Wert'];
 
 type State = {
     short: string,
@@ -2984,14 +2984,17 @@ class Format {
     }
 
     static rValue(data: string): Rdata {
-        const parsedData = Parse.rCSV(data);
+        const parsedData = Parse.rCSV(data, ',');
         let res: Rdata = { date: null, r: 0 };
         if (parsedData.length === 0) return res;
         // find used key
         let rValueField;
         Object.keys(parsedData[0]).forEach(key => {
             CSV_RVALUE_FIELDS.forEach(possibleRKey => {
-                if (key === possibleRKey) rValueField = possibleRKey;
+                if (key === possibleRKey){
+                    console.log(`rValue: match on key ${key}`);
+                    rValueField = possibleRKey;
+                }
             });
         });
         const firstDateField = Object.keys(parsedData[0])[0];
@@ -2999,7 +3002,7 @@ class Format {
             parsedData.forEach(item => {
                 const date = item[firstDateField];
                 const value = item[rValueField];
-                if (typeof date !== 'undefined' && date.includes('.') &&
+                if (typeof date !== 'undefined' && date.includes('-') &&
                     typeof value !== 'undefined' &&
                     parseFloat(value.replace(',', '.')) > 0) {
                     res.r = parseFloat(item[rValueField].replace(',', '.'));
@@ -3012,15 +3015,13 @@ class Format {
 }
 
 class Parse {
-    static rCSV(rDataStr: string): {}[] {
-        let lines = rDataStr.split(/(?:\r\n|\n)+/).filter(function (el) {
-            return el.length !== 0;
-        });
-        let headers = lines.splice(0, 1)[0].split(';');
+    static rCSV(rDataStr: string, separator: string = ','): {}[] {
+        let lines = rDataStr.split(/(?:\r\n|\n)+/).filter(el => el.length !== 0);
+        let headers = lines[0].split(separator);
         let elements: { [key: string]: any }[] = [];
-        for (let i = 0; i < lines.length; i++) {
+        for (let i = 1; i < lines.length; i++) {
             let element = {};
-            let values = lines[i].split(';');
+            let values = lines[i].split(separator);
             element = values.reduce(function (result, field, index) {
                 result[headers[index]] = field;
                 return result;
@@ -3525,7 +3526,7 @@ class RkiService /*implements RkiServiceInterface*/ {
     }
 
     async rData(): Promise<Rdata> {
-        const url = `https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Projekte_RKI/Nowcasting_Zahlen_csv.csv?__blob=publicationFile`;
+        const url = `https://raw.githubusercontent.com/robert-koch-institut/SARS-CoV-2-Nowcasting_und_-R-Schaetzung/main/Nowcast_R_aktuell.csv`;
         const response = await this.execCached(url, RequestType.STRING);
 
         if (response.status === DataStatus.OK && !response.isEmpty()) {
