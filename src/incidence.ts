@@ -291,7 +291,7 @@ interface MetaArea extends MetaBase {
     BL: string,
     EWZ_BL: number,
     cases7_bl_per_100k: number,
-    cases_7_per_100k?: number,
+    cases7_per_100k?: number,
 }
 
 interface ApiMetaArea {
@@ -306,7 +306,7 @@ interface ApiMetaArea {
     BL: string,
     EWZ_BL: number,
     cases7_bl_per_100k: number,
-    cases_7_per_100k?: number,
+    cases7_per_100k?: number,
 }
 
 type MetaData = MetaArea | MetaState | MetaCountry
@@ -2297,7 +2297,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
             RS: info.RS,
             cases: info.cases,
             cases7_bl_per_100k: info.cases7_bl_per_100k,
-            cases_7_per_100k: info.cases_7_per_100k,
+            cases7_per_100k: info.cases7_per_100k,
             cases_per_100k: info.cases_per_100k,
             last_update: info.last_update,
             name: info.GEN,

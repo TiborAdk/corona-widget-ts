@@ -1790,7 +1790,7 @@ class IncidenceData extends CustomData {
             RS: info.RS,
             cases: info.cases,
             cases7_bl_per_100k: info.cases7_bl_per_100k,
-            cases_7_per_100k: info.cases_7_per_100k,
+            cases7_per_100k: info.cases7_per_100k,
             cases_per_100k: info.cases_per_100k,
             last_update: info.last_update,
             name: info.GEN,
