@@ -1631,6 +1631,10 @@ class IncidenceData extends CustomData {
     }
     static completeHistory(data, offset, last) {
         offset = offset ?? CFG.def.maxShownDays + 7;
+        if (!Array.isArray(data)) {
+            throw Error('completeHistory: data is not an array');
+        }
+        data = data.sort((a, b) => a.date - b.date);
         const lastDateHistory = new Date(last ?? data[data.length - 1].date).getTime();
         const completed = {};
         for (let i = 0; i <= offset; i++) {
@@ -1656,8 +1660,12 @@ class IncidenceData extends CustomData {
             reversedData[i].incidence = (sumCasesLast7Days / dataObject.meta.EWZ) * 100000;
         }
         const data = dataObject;
-        if (disableLive && typeof data.meta.cases7_per_100k !== 'undefined') {
+        if (disableLive && data.meta.cases7_per_100k) {
+            console.log('calcIncidence: using meta.cases7_per_100k');
             reversedData[0].incidence = data.meta.cases7_per_100k;
+        }
+        else {
+            console.log('calcIncidence: using calculated incidence');
         }
         dataObject.data = reversedData.reverse();
         return dataObject;

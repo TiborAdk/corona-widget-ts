@@ -2115,6 +2115,11 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
     static completeHistory(data: IncidenceValue[], offset?: number, last?: Date | number | string): IncidenceValue[] {
         offset = offset ?? CFG.def.maxShownDays + 7;
+        if (!Array.isArray(data)) {
+            throw Error('completeHistory: data is not an array');
+        }
+
+        data = data.sort((a, b) => a.date - b.date);
 
         const lastDateHistory = new Date(last ?? data[data.length - 1].date).getTime();
         const completed: { [key: string]: IncidenceValue } = {};
@@ -2145,8 +2150,11 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         }
 
         const data = (dataObject as any)
-        if (disableLive && typeof data.meta.cases7_per_100k !== 'undefined') {
-            reversedData[0].incidence = data.meta.cases7_per_100k
+        if (disableLive && data.meta.cases7_per_100k) {
+            console.log('calcIncidence: using meta.cases7_per_100k');
+            reversedData[0].incidence = data.meta.cases7_per_100k;
+        } else {
+            console.log('calcIncidence: using calculated incidence');
         }
 
         dataObject.data = reversedData.reverse();
