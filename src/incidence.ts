@@ -3179,32 +3179,28 @@ class Helper {
         }
     }
 
-    static async updateConfig(path: string, url: string): Promise<void> {
-        console.log('updating config');
-        const req = new Request(url);
+    static async getLatestConfig(): Promise<any | false> {
+        const req = new Request(HTTP_CONFIG);
         req.timeoutInterval = 10;
 
         let data;
         try {
             data = await req.loadString();
         } catch (e) {
-            console.log('update config: failed')
+            console.log('getLatestConfig: request failed')
             console.warn(e);
-            return;
+            return false;
         }
 
         const response = req.response;
 
         if (response.statusCode !== 200) {
-            console.warn('update config: failed: ' + response.statusCode);
-            return;
+            console.warn('getLatestConfig: failed: ' + response.statusCode);
+            return false;
         }
 
-        console.log('update config: received config from repository');
-        const cfg = JSON.parse(data);
-
-        cfm.write(cfg, path, FileType.JSON);
-
+        console.log('getLatestConfig: received config from repository');
+        return JSON.parse(data);
     }
 
     static async updateScript() {
@@ -3231,13 +3227,33 @@ class Helper {
         const lastUpdate = new Date(_data['lastUpdated'] ?? 0);
         const nextUpdate = new Date(lastUpdate);
         nextUpdate.setDate(nextUpdate.getDate() + autoUpdateInterval);
-
         if (nextUpdate > currentDate) {
             console.log(`updateScript: skip (last update less than ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
             return;
         }
 
-        await Helper.updateConfig('.default', HTTP_CONFIG);
+        const lastCheck = new Date(_data['lastCheck'] ?? 0);
+        const nextCheck = new Date(lastCheck);
+        nextCheck.setDate(nextCheck.getDate() + 1); // if the last update is older than the autoUpdateInterval we check daily for updates based on the version
+        if (nextCheck > currentDate) {
+            console.log('updateScript: skip (last check less than 1 day ago)');
+            return;
+        }
+
+        const cfg = await Helper.getLatestConfig();
+        if (!cfg) {
+            console.log('updateScript: abort. getting config failed.');
+            return;
+        }
+
+        if (!Helper.checkLatest(VERSION, cfg.version)) {
+            console.log('updateScript: skip. provided version not newer than current or invalid');
+            _data['lastCheck'] = currentDate;
+            cfm.write(_data, '.data.json', FileType.JSON, true); // .data.json is stored in configDir
+            return;
+        }
+
+        cfm.write(cfg, '.default', FileType.JSON);
 
         console.log('updateScript: getting new script');
 
@@ -3271,7 +3287,7 @@ class Helper {
             cfm.copy(currentFile, backupFile, false);
             cfm.write(script, currentFile, FileType.OTHER, false);
             cfm.remove(backupFile, false);
-            _data['lastUpdated'] = currentDate;
+            _data['lastUpdated'] = _data['lastCheck'] = currentDate;
             cfm.write(_data, '.data.json', FileType.JSON, true); // .data.json is stored in configDir
             console.log('updateScript: script updated');
         } catch (e) {
@@ -3282,6 +3298,33 @@ class Helper {
                 cfm.remove(backupFile, false);
             }
         }
+    }
+
+    static checkLatest(current: string, version?: string): boolean {
+        console.log(current + ' ' + version);
+        const arrayCurrent = current.split('.');
+        if (arrayCurrent.length < 2) {
+            console.warn(`checkLatest: invalid version ''${version}`);
+            return false;
+        }
+
+        if (!version) {
+            console.warn(`checkLatest: no version to compare provided.`);
+            return false;
+        }
+
+        const arrayVersion = version.split('.');
+        if (arrayVersion.length < 2) {
+            console.warn(`checkLatest: invalid version '${version}'`);
+            return false;
+        }
+
+        for (let i = 0; i < 2; i++) {
+            if (arrayCurrent[i] < arrayVersion[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
