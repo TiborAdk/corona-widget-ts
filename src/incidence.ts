@@ -5,7 +5,7 @@
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 
 const CFG: Config = {
-    version: '1.4.0',
+    version: '1.5.0',
     autoUpdate: true, // whether the script should update it self
     autoUpdateInterval: 1, // how often the script should update it self (in days)
     geoCacheAccuracy: 1, // accuracy the gps staticCoords are cached with (0: 111 Km; 1: 11,1 Km; 2: 1,11 Km; 3: 111 m; 4: 11,1 m)
@@ -30,7 +30,7 @@ const CFG: Config = {
     widgets: {},
 }
 
-const VERSION = '1.4.0';
+const VERSION = '1.5.0';
 const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
 const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
 const DIR_DEV = 'corona_widget_dev';
@@ -57,7 +57,6 @@ enum AreaType {
 type Env = {
     state: { nameIndex: string };
     areaIBZ: Map<number, AreaType>,
-    cache: Map<any, any>,
     cacheAreas: Map<string, IncidenceData<MetaArea>>,
     cacheStates: Map<string, IncidenceData<MetaState>>,
     cacheCountries: Map<string, IncidenceData<MetaCountry>>,
@@ -72,40 +71,39 @@ type Env = {
 const ENV: Env = {
     state: {nameIndex: CFG.def.stateUseShortName ? 'short' : 'name'},
     areaIBZ: new Map([
-        [40, AreaType.KS], // Kreisfreie Stadt
-        [41, AreaType.SK], // Stadtkreis
-        [42, AreaType.K],  // Kreis
-        [43, AreaType.LK], // Landkreis
-        [45, AreaType.SV_K], // Sonderverband offiziell Kreis
-        [46, AreaType.SV_LK],  // Sonderverband offiziell Landkreis
-    ],
+            [40, AreaType.KS], // Kreisfreie Stadt
+            [41, AreaType.SK], // Stadtkreis
+            [42, AreaType.K],  // Kreis
+            [43, AreaType.LK], // Landkreis
+            [45, AreaType.SV_K], // Sonderverband offiziell Kreis
+            [46, AreaType.SV_LK],  // Sonderverband offiziell Landkreis
+        ],
     ),
     cacheAreas: new Map<string, IncidenceData<MetaArea>>(),
     cacheCountries: new Map<string, IncidenceData<MetaCountry>>(),
     cacheStates: new Map<string, IncidenceData<MetaState>>(),
     cacheVaccines: new Map<string, VaccineData>(),
     states: new Map<string, State>([
-        ['1', { short: 'SH', name: 'Schleswig-Holstein' }],
-        ['2', { short: 'HH', name: 'Hamburg' }],
-        ['3', { short: 'NI', name: 'Niedersachsen' }],
-        ['4', { short: 'HB', name: 'Bremen' }],
-        ['5', { short: 'NRW', name: 'Nordrhein-Westfalen' }],
-        ['6', { short: 'HE', name: 'Hessen' }],
-        ['7', { short: 'RP', name: 'Rheinland-Pfalz' }],
-        ['8', { short: 'BW', name: 'Baden-Württemberg' }],
-        ['9', { short: 'BY', name: 'Bayern' }],
-        ['10', { short: 'SL', name: 'Saarland' }],
-        ['11', { short: 'BE', name: 'Berlin' }],
-        ['12', { short: 'BB', name: 'Brandenburg' }],
-        ['13', { short: 'MV', name: 'Mecklenburg-Vorpommern' }],
-        ['14', { short: 'SN', name: 'Sachsen' }],
-        ['15', { short: 'ST', name: 'Sachsen-Anhalt' }],
-        ['16', { short: 'TH', name: 'Thüringen' }],
-    ],
+            ['1', {short: 'SH', name: 'Schleswig-Holstein'}],
+            ['2', {short: 'HH', name: 'Hamburg'}],
+            ['3', {short: 'NI', name: 'Niedersachsen'}],
+            ['4', {short: 'HB', name: 'Bremen'}],
+            ['5', {short: 'NRW', name: 'Nordrhein-Westfalen'}],
+            ['6', {short: 'HE', name: 'Hessen'}],
+            ['7', {short: 'RP', name: 'Rheinland-Pfalz'}],
+            ['8', {short: 'BW', name: 'Baden-Württemberg'}],
+            ['9', {short: 'BY', name: 'Bayern'}],
+            ['10', {short: 'SL', name: 'Saarland'}],
+            ['11', {short: 'BE', name: 'Berlin'}],
+            ['12', {short: 'BB', name: 'Brandenburg'}],
+            ['13', {short: 'MV', name: 'Mecklenburg-Vorpommern'}],
+            ['14', {short: 'SN', name: 'Sachsen'}],
+            ['15', {short: 'ST', name: 'Sachsen-Anhalt'}],
+            ['16', {short: 'TH', name: 'Thüringen'}],
+        ],
     ),
-    cache: new Map<any, any>(),
     script: {
-        filename: this.module.filename.replace(/^.*[\\\/]/, ''),
+        filename: this.module.filename.replace(/^.*[\\/]/, ''),
     },
     version: "1.4.0"
 }
@@ -235,9 +233,9 @@ class CustomFont extends Font {
 type IncidenceLimit = { color: Color; limit: number }
 
 class Incidence {
-    static readonly DARKDARKRED: IncidenceLimit = { limit: 250, color: Colors.DARKDARKRED };
-    static readonly DARKRED: IncidenceLimit = { limit: 100, color: Colors.DARKRED };
-    static readonly RED: IncidenceLimit = { limit: 50, color: Colors.RED };
+    static readonly DARKDARKRED: IncidenceLimit = {limit: 250, color: Colors.DARKDARKRED};
+    static readonly DARKRED: IncidenceLimit = {limit: 100, color: Colors.DARKRED};
+    static readonly RED: IncidenceLimit = {limit: 50, color: Colors.RED};
     static readonly ORANGE: IncidenceLimit = {limit: 25, color: Colors.ORANGE};
     static readonly YELLOW: IncidenceLimit = {limit: 5, color: Colors.YELLOW};
     static readonly GREEN: IncidenceLimit = {limit: 0, color: Colors.GREEN};
@@ -262,25 +260,25 @@ interface VaccineData {
     }
 }
 
-interface MetaBase {
+type MetaBase = {
     name: string,
     short?: string,
 }
 
-interface MetaCountry extends MetaBase {
+type MetaCountry = MetaBase & {
     r: Rdata,
     EWZ: number,
     vaccine?: VaccineData
 }
 
-interface MetaState extends MetaBase {
+type MetaState = MetaBase & {
     BL_ID: string,
     BL: string,
     EWZ: number,
     vaccine?: VaccineData
 }
 
-interface MetaArea extends MetaBase {
+type MetaArea = MetaBase & {
     RS: string,
     IBZ: number,
     cases: number,
@@ -315,7 +313,7 @@ type areaDataRow =
     { status: DataStatus; data?: IncidenceData<MetaArea>; name?: string }
     | { status: DataStatus.OK; data: IncidenceData<MetaArea>, name?: string };
 
-interface IncidenceGraphData {
+type IncidenceGraphData = {
     cases?: number,
     incidence?: number
 }
@@ -496,7 +494,7 @@ abstract class StackLikeWrapper<T extends StackLike> implements StackLike {
     }
 
     protected static applyTextProperties2Element<T extends WidgetText | WidgetDate>(elem: T, properties: TextProperties = {}): T {
-        const { textOpacity, textColor, url, lineLimit, minimumScaleFactor, font } = properties;
+        const {textOpacity, textColor, url, lineLimit, minimumScaleFactor, font} = properties;
         if (textColor) UI.setColorOfElementByIndex(elem, 'textColor', textColor)
         if (font) elem.font = font;
         if (textOpacity) elem.textOpacity = textOpacity;
@@ -788,12 +786,12 @@ class StatusBlockStack extends CustomWidgetStack {
     private readonly iconText: WidgetText
     private readonly textText?: WidgetText
 
-    constructor(stack: WidgetStack, status?: DataStatus, showText: boolean = false, size?: Size) {
-        super(stack, { layout: Layout.VERTICAL, font: CustomFont.SMALL, size });
+    constructor(stack: WidgetStack, status?: DataStatus, showText = false, size?: Size) {
+        super(stack, {layout: Layout.VERTICAL, font: CustomFont.SMALL, size});
         this.showText = showText;
 
         this.iconText = this.addText('');
-        if (this.showText) this.textText = this.addText('', { font: CustomFont.XSMALL, textColor: '#999999' });
+        if (this.showText) this.textText = this.addText('', {font: CustomFont.XSMALL, textColor: '#999999'});
 
         if (status) this.setStatus(status);
 
@@ -835,16 +833,16 @@ class IncidenceContainer extends CustomWidgetStack {
     private readonly arrowText: WidgetText
 
     constructor(stack: WidgetStack, incidence?: number, font: CustomFont = CustomFont.NORMAL, fontSizeOffset?: number,
-        arrow?: TrendArrow, fontArrow?: Font, size?: Size) {
-        super(stack, { layout: Layout.HORIZONTAL, font, size, });
+                arrow?: TrendArrow, fontArrow?: Font, size?: Size) {
+        super(stack, {layout: Layout.HORIZONTAL, font, size,});
 
         const fontSmaller = font.newSizedByOffset(fontSizeOffset ?? 0);
 
-        this.part0 = this.addText('', { font, lineLimit: 1, minimumScaleFactor: 1 });
-        this.part1 = this.addText('', { font: fontSmaller, lineLimit: 1, minimumScaleFactor: 0.5 })
+        this.part0 = this.addText('', {font, lineLimit: 1, minimumScaleFactor: 1});
+        this.part1 = this.addText('', {font: fontSmaller, lineLimit: 1, minimumScaleFactor: 0.5})
 
         // this.addSpacer(); // align arrow right
-        this.arrowText = this.addText('', { font: fontArrow, lineLimit: 1, minimumScaleFactor: 1 })
+        this.arrowText = this.addText('', {font: fontArrow, lineLimit: 1, minimumScaleFactor: 1})
 
         // this.addSpacer(); // align all left
 
@@ -859,12 +857,12 @@ class IncidenceContainer extends CustomWidgetStack {
         this.part1.textColor = color;
         if (incidence) {
             if (Math.round(incidence) < 100) {
-                const _incidence = Math.round(incidence * 10 ) / 10;
+                const _incidence = Math.round(incidence * 10) / 10;
                 const num = Math.floor(_incidence);
                 const decimal = Math.abs(_incidence) - num;
 
                 this.part0.text = '' + num;
-                this.part1.text = decimal >= 0 ? Format.number(decimal, 1).substring(1): '';
+                this.part1.text = decimal >= 0 ? Format.number(decimal, 1).substring(1) : '';
             } else {
                 this.part0.text = '' + Math.round(incidence);
                 this.part1.text = ''
@@ -886,20 +884,20 @@ class HistoryCasesStack extends CustomWidgetStack {
     private readonly casesText: WidgetText;
     private readonly graphSize: Size;
 
-    constructor(stack: WidgetStack, graphSize: Size, font?: Font, properties: { spacing?: number, size?: Size, padding?: Padding, align?: Align, imageOpacity?: number, graphResizable?: boolean } = { spacing: 1, }) {
-        const { spacing, padding, align, imageOpacity, graphResizable } = properties;
+    constructor(stack: WidgetStack, graphSize: Size, font?: Font, properties: { spacing?: number, size?: Size, padding?: Padding, align?: Align, imageOpacity?: number, graphResizable?: boolean } = {spacing: 1,}) {
+        const {spacing, padding, align, imageOpacity, graphResizable} = properties;
 
         const size: Size = properties.size ?? new Size(graphSize.width, 0);
-        super(stack, { layout: Layout.VERTICAL, spacing, font, padding, size });
+        super(stack, {layout: Layout.VERTICAL, spacing, font, padding, size});
         this.graphSize = graphSize;
 
-        this.graphImage = this.addImage(emptyImage(), { imageOpacity });
+        this.graphImage = this.addImage(emptyImage(), {imageOpacity});
         this.graphResizable = graphResizable ?? false;
 
-        const casesStack = this.addStack({ layout: Layout.HORIZONTAL });
+        const casesStack = this.addStack({layout: Layout.HORIZONTAL});
 
         if (align === undefined || align === Align.RIGHT || align === Align.CENTER) casesStack.addSpacer();
-        this.casesText = casesStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
+        this.casesText = casesStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.9});
         if (align === Align.LEFT || align === Align.CENTER) casesStack.addSpacer();
     }
 
@@ -927,7 +925,7 @@ abstract class IncidenceRowStackBase extends CustomWidgetStack {
     protected trendStack: HistoryCasesStack;
 
     protected constructor(stack: WidgetStack, layout?: Layout, bgColor?: ColorValue, size?: Size, cornerRadius?: number, padding?: Padding) {
-        super(stack, { layout, bgColor, size, cornerRadius, padding, });
+        super(stack, {layout, bgColor, size, cornerRadius, padding,});
     }
 
     setName(name: string): void {
@@ -1019,9 +1017,9 @@ class SmallIncidenceRowStack extends IncidenceVaccineRowStackBase {
 
         this.graphSize = new Size(wr, ht - 1);
 
-        const c0 = this.addStack({ layout: Layout.VERTICAL, size: new Size(wl, 0), });
-        const nameStack = c0.addStack({ layout: Layout.HORIZONTAL, size: new Size(0, ht - 1) });
-        const vaccineStack = c0.addStack({ layout: Layout.HORIZONTAL, size: new Size(0, hb), font: CustomFont.XSMALL });
+        const c0 = this.addStack({layout: Layout.VERTICAL, size: new Size(wl, 0),});
+        const nameStack = c0.addStack({layout: Layout.HORIZONTAL, size: new Size(0, ht - 1)});
+        const vaccineStack = c0.addStack({layout: Layout.HORIZONTAL, size: new Size(0, hb), font: CustomFont.XSMALL});
         this.addSpacer(spacing);
         this.trendStack = new HistoryCasesStack(this.addStack(), this.graphSize, CustomFont.XSMALL, {
             spacing: 1,
@@ -1034,13 +1032,13 @@ class SmallIncidenceRowStack extends IncidenceVaccineRowStackBase {
         nameStack.addSpacer(); // align incidence right
         this.incidenceContainer = new IncidenceContainer(nameStack.addStack(), undefined, CustomFont.medium(12), -1);
         nameStack.addSpacer(2);
-        this.nameText = nameStack.addText('', { font: CustomFont.NORMAL });
+        this.nameText = nameStack.addText('', {font: CustomFont.NORMAL});
 
         // Vaccine
         vaccineStack.addSpacer();
-        this.vaccineIconText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
+        this.vaccineIconText = vaccineStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.9});
         vaccineStack.addSpacer(0);
-        this.vaccineQuoteText = vaccineStack.addText('', { lineLimit: 1, minimumScaleFactor: 0.9 });
+        this.vaccineQuoteText = vaccineStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.9});
         vaccineStack.addSpacer(1);
         this.vaccineQuote2ndText = vaccineStack.addText('', {lineLimit: 1, minimumScaleFactor: 0.5});
 
@@ -1052,7 +1050,7 @@ class SmallIncidenceRowStack extends IncidenceVaccineRowStackBase {
 }
 
 class SmallIncidenceBlockStack extends IncidenceRowStackBase {
-    constructor(stack: WidgetStack, data?: IncidenceData<MetaData>, incidenceTrend?: IncidenceTrend, minmax?: {}) {
+    constructor(stack: WidgetStack, data?: IncidenceData<MetaData>, incidenceTrend?: IncidenceTrend, minmax?: IncGraphMinMax) {
         super(stack, Layout.VERTICAL, '#99999915', undefined, 8, [2, 0, 2, 4]);
         this.textColor = '#777777';
 
@@ -1066,7 +1064,7 @@ class SmallIncidenceBlockStack extends IncidenceRowStackBase {
             minimumScaleFactor: 1
         });
 
-        const row1 = this.addStack({ layout: Layout.HORIZONTAL });
+        const row1 = this.addStack({layout: Layout.HORIZONTAL});
         row1.addSpacer();
         this.trendStack = new HistoryCasesStack(row1.addStack(), new Size(58, 10), CustomFont.XSMALL, {
             imageOpacity: 0.9,
@@ -1094,13 +1092,13 @@ class HeaderStack extends CustomWidgetStack {
     private readonly isSmall: boolean;
 
     constructor(stack: WidgetStack, size: WidgetSize, title?: string, rValue?: number, type?: string, date?: Date) {
-        super(stack, { layout: Layout.HORIZONTAL });
+        super(stack, {layout: Layout.HORIZONTAL});
 
         this.isSmall = CustomListWidget.isSmall(size);
 
         this.titleText = this.addText('', Font.mediumSystemFont(22));
         this.addSpacer(3);
-        const middleStack = this.addStack({ layout: Layout.VERTICAL });
+        const middleStack = this.addStack({layout: Layout.VERTICAL});
         this.addSpacer();
         if (this.isSmall) {
             // add status block
@@ -1114,11 +1112,11 @@ class HeaderStack extends CustomWidgetStack {
         }
 
         // R
-        const rStack = middleStack.addStack({ layout: Layout.HORIZONTAL });
-        this.rText = rStack.addText('', { font: CustomFont.MEDIUM });
+        const rStack = middleStack.addStack({layout: Layout.HORIZONTAL});
+        this.rText = rStack.addText('', {font: CustomFont.MEDIUM});
         rStack.addSpacer(2);
 
-        const info = { font: CustomFont.XSMALL, textColor: '#777777' };
+        const info = {font: CustomFont.XSMALL, textColor: '#777777'};
         //const infoStack = rStack.addStack({layout: Layout.VERTICAL, font: CustomFont.XSMALL, textColor: '#777777'});
         this.shownText = rStack.addText('', info);
         this.dateText = middleStack.addText('', info);
@@ -1192,7 +1190,7 @@ class AreaRowStack extends IncidenceRowStackBase {
     private readonly areaIconStack: AreaIconStack;
     private readonly elementDepth?: number;
 
-    constructor(stack: WidgetStack, widgetSize: WidgetSize, data?: IncidenceData<MetaArea>, incidenceTrend?: IncidenceTrend, status?: DataStatus, name?: string, minmax?: IncGraphMinMax, padding?: Padding, cornerRadius: number = 10, elemDepth?: number) {
+    constructor(stack: WidgetStack, widgetSize: WidgetSize, data?: IncidenceData<MetaArea>, incidenceTrend?: IncidenceTrend, status?: DataStatus, name?: string, minmax?: IncGraphMinMax, padding?: Padding, cornerRadius = 10, elemDepth?: number) {
         const isSmall = CustomListWidget.isSmall(widgetSize)
         super(stack, Layout.VERTICAL, undefined, undefined, cornerRadius);
         this.elementDepth = elemDepth;
@@ -1226,14 +1224,14 @@ class AreaRowStack extends IncidenceRowStackBase {
             nameStack.addSpacer();
         } else {
             row0.setBackgroundColor(bgColor);
-            nameStack = row0.addStack({ layout: Layout.HORIZONTAL, font: CustomFont.MEDIUM });
+            nameStack = row0.addStack({layout: Layout.HORIZONTAL, font: CustomFont.MEDIUM});
             minScale = 1;
             nameStack.addSpacer(5);
         }
 
         this.areaIconStack = new AreaIconStack(nameStack.addStack());
         nameStack.addSpacer(3);
-        this.nameText = nameStack.addText('', { lineLimit: 1, minimumScaleFactor: minScale });
+        this.nameText = nameStack.addText('', {lineLimit: 1, minimumScaleFactor: minScale});
 
         if (isSmall) nameStack.addSpacer();
 
@@ -1244,7 +1242,7 @@ class AreaRowStack extends IncidenceRowStackBase {
             row0.addSpacer(5);
         }
 
-        this.trendStack = new HistoryCasesStack(row0.addStack({ textColor: '#888888' }), this.graphSize, CustomFont.XSMALL);
+        this.trendStack = new HistoryCasesStack(row0.addStack({textColor: '#888888'}), this.graphSize, CustomFont.XSMALL);
 
         if (status) this.setStatus(status, data?.location);
         if (data) {
@@ -1282,9 +1280,9 @@ class AreaErrorRowStack extends AreaRowStack {
     }
 
     addDummyData() {
-        let dummyGraphData: IncidenceGraphData[] = [];
+        const dummyGraphData: IncidenceGraphData[] = [];
         for (let i = 0; i < 21; i++) {
-            dummyGraphData.push({ cases: 0, incidence: 0 });
+            dummyGraphData.push({cases: 0, incidence: 0});
         }
 
         this.setGraph(dummyGraphData);
@@ -1409,7 +1407,7 @@ abstract class ListStack<S, T> extends CustomWidgetStack {
     }
 
     protected constructor(stack: WidgetStack, widgetSize: WidgetSize, layout: Layout = Layout.VERTICAL, spacing?: number, maxLength?: number) {
-        super(stack, { layout });
+        super(stack, {layout});
 
         if (spacing) {
             if (spacing < 0) {
@@ -1429,7 +1427,7 @@ abstract class ListStack<S, T> extends CustomWidgetStack {
 
     protected abstract createItem(data: S, ...args);
 
-    protected addItem(data: S, addSpacer: boolean = true, ...args): void {
+    protected addItem(data: S, addSpacer = true, ...args): void {
         if (this.maxLength && this.items.length >= this.maxLength) {
             console.warn('Reached max length.');
             return;
@@ -1446,7 +1444,7 @@ abstract class ListStack<S, T> extends CustomWidgetStack {
         }
         const sliced = data.slice(0, this.maxLength);
         for (let i = 0; i < sliced.length; i++) {
-            let item = sliced[i];
+            const item = sliced[i];
             this.addItem(item, undefined, ...args);
         }
     }
@@ -1600,7 +1598,7 @@ class IncidenceListWidget extends CustomListWidget {
         }
 
         // AREAS
-        const graphMinMax: IncGraphMinMax = { min: { incidence: 0, cases: 0 }, max: { incidence: 0, cases: 0 } };
+        const graphMinMax: IncGraphMinMax = {min: {incidence: 0, cases: 0}, max: {incidence: 0, cases: 0}};
         const areaRows: areaDataRow[] = await Promise.all(
             this.locations.map(async (location: CustomLocation) => {
                     const respArea = await IncidenceData.loadArea(this.api, location);
@@ -1616,27 +1614,27 @@ class IncidenceListWidget extends CustomListWidget {
                     const maxValues = areaWithIncidence.getMax();
 
                     for (const maxKey in maxValues) {
-                        if (maxValues.hasOwnProperty(maxKey)) {
+                        if (Object.prototype.hasOwnProperty.call(maxValues, maxKey)) {
                             if (!graphMinMax.max) {
                                 graphMinMax.max = {};
                                 graphMinMax.max[maxKey] = maxValues[maxKey];
                             } else if (!graphMinMax.max[maxKey]) {
                                 graphMinMax.max[maxKey] = maxValues[maxKey];
-                        } else if (maxValues[maxKey] > graphMinMax.max[maxKey]) {
-                            graphMinMax.max[maxKey] = maxValues[maxKey];
+                            } else if (maxValues[maxKey] > graphMinMax.max[maxKey]) {
+                                graphMinMax.max[maxKey] = maxValues[maxKey];
+                            }
                         }
                     }
-                }
 
-                return { status: status, data: areaWithIncidence, name: location.name };
-            },
+                    return {status: status, data: areaWithIncidence, name: location.name};
+                },
             )
         );
 
         console.log('MaxValues: ' + JSON.stringify(graphMinMax));
 
         if (this.isSmall()) {
-            const { status: dataStatus, data } = areaRows[0];
+            const {status: dataStatus, data} = areaRows[0];
             this.setStatus(dataStatus, data?.location);
         }
 
@@ -1714,13 +1712,13 @@ class IncidenceListWidget extends CustomListWidget {
     }
 }
 
-interface IncidenceValue extends IncidenceGraphData {
+type IncidenceValue = IncidenceGraphData & {
     date: number;
     date_str: string;
 }
 
 class UI {
-    static generateGraph(data: any[], size: Size, minmax: IncGraphMinMax = {}, valueIndex: string = 'cases', colorIndex: string = 'incidence',
+    static generateGraph(data: Record<string, number>[], size: Size, minmax: IncGraphMinMax = {}, valueIndex = 'cases', colorIndex: string | number = 'incidence',
                          align: Align = Align.LEFT, upsideDown: boolean = CFG.def.graphUpsideDown): DrawContext {
         const context = new DrawContext();
         context.size = size;
@@ -1760,7 +1758,7 @@ class UI {
 
         for (let i = 0; i + iOffset < data.length; i++) {
             const item = data[i + iOffset];
-            let value = parseFloat(item[valueIndex]);
+            let value = parseFloat(item[valueIndex].toString()); // Todo: i don't think we need to convert from number to string to number
             if (value === -1 && i === 0) value = 10;
             const h = Math.max(minH, (Math.abs(value) / max) * height);
             const x = xOffset + (w + spacing) * i;
@@ -1953,7 +1951,7 @@ interface Savable {
     id: string;
     fm?: CustomFileManager;
 
-    getStorageObject: () => Savable;
+    getStorageObject: () => Record<string, unknown>;
     save: () => Promise<void>;
 }
 
@@ -1963,7 +1961,7 @@ interface DataInterface<S, T> {
     getMaxFromDataObjectByIndex: (index: string) => number;
 }
 
-abstract class CustomData<S, T> implements DataInterface<S[], T>, Savable {
+abstract class CustomData<S extends Record<string, unknown>, T extends Record<string, unknown>> implements DataInterface<S[], T>, Savable {
     id: string;
     meta: T;
     data: S[];
@@ -1981,21 +1979,21 @@ abstract class CustomData<S, T> implements DataInterface<S[], T>, Savable {
     }
 
     getMaxFromDataObjectByIndex(index: string): number {
-        return CustomData.getMaxFromArrayOfObjectsByIndex(this.data, index);
+        return CustomData.getMaxFromArrayOfObjectsByKey(this.data, index);
     }
 
-    static getMaxFromArrayOfObjectsByIndex(data: {}[], index: string) {
-        return Math.max(...data.map(value => value[index] ?? 0));
+    static getMaxFromArrayOfObjectsByKey(data: Record<string, unknown>[], index: string) {
+        return Math.max(...data.map(value => typeof value[index] === "number" ? value[index] as number : 0));
     }
 
-    abstract getStorageObject(): CustomData<S, T>;
+    abstract getStorageObject(): Record<string, unknown>;
 
     get storageFileName(): string {
         return `${(this.fm?.filestub ?? '') + this.id}.json`;
     }
 
     async save(): Promise<void> {
-        await this.fm?.write(this.getStorageObject(), this.storageFileName, FileType.JSON)
+        this.fm?.write(this.getStorageObject(), this.storageFileName, FileType.JSON)
     }
 }
 
@@ -2007,14 +2005,14 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         this.location = location;
     }
 
-    getDay(offset: number = 0): IncidenceValue | undefined {
+    getDay(offset = 0): IncidenceValue | undefined {
         return this.data[this.data.length - 1 - offset];
     }
 
-    getAvg(weekOffset: number = 0, ignoreToday: boolean = false): number {
+    getAvg(weekOffset = 0, ignoreToday = false): number {
         const caseData = this.data.reverse();
         const skipToday: number = ignoreToday ? 1 : 0;
-        const offsetDays: number = 7;
+        const offsetDays = 7;
         const weekData = caseData.slice(offsetDays * weekOffset + skipToday, offsetDays * weekOffset + 7 + skipToday);
         return weekData.reduce((acc, x) => acc + (x.incidence ?? 0), 0) / offsetDays;
     }
@@ -2030,8 +2028,8 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
     getMax(): IncGraphValues {
 
         return this.data.reduce((p: IncGraphValues, c: IncidenceValue) => {
-            const { cases, incidence } = c;
-            const { cases: pC, incidence: pI } = p;
+            const {cases, incidence} = c;
+            const {cases: pC, incidence: pI} = p;
             return {
                 cases: !pC || (cases && cases > pC) ? cases : pC,
                 incidence: !pI || (incidence && incidence > pI) ? incidence : pI
@@ -2039,11 +2037,8 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         }, {});
     }
 
-    getStorageObject(): IncidenceData<T> {
-        const data = new IncidenceData<T>(this.id, this.data, this.meta);
-        delete data.location;
-        delete data.fm;
-        return data;
+    getStorageObject(): { id: string, data: IncidenceValue[], meta: T } {
+        return {id: this.id, data: this.data, meta: this.meta};
     }
 
     isArea(): this is IncidenceData<MetaArea> {
@@ -2063,7 +2058,11 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return new IncidenceData<T>(data.id, data.data, data.meta, location ?? data.location);
     }
 
-    static isIncidenceValue(value: { [key: string]: any }): value is IncidenceValue {
+    static fromObject<T extends MetaData>(data: Record<string, any>, location?: CustomLocation): IncidenceData<T>{
+        return new IncidenceData<T>(data.id, data.data, data.meta, location ?? data.location)
+    }
+
+    static isIncidenceValue(value: Record<string, any>): value is IncidenceValue {
         return value.date && !isNaN(value.date) && value.date_str
     }
 
@@ -2076,12 +2075,12 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return true;
     }
 
-    static async loadFromCache<T extends MetaData>(id: string, typeCheck: (data: IncidenceData<T>) => data is IncidenceData<T>, ...params: any[]): Promise<DataResponse<IncidenceData<T>> | EmptyResponse> {
-        const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
+    static async loadFromCache<T extends MetaData>(id: string, typeCheck: (data: IncidenceData<T>) => data is IncidenceData<T>, ...params: any): Promise<DataResponse<IncidenceData<T>> | EmptyResponse> {
+        const resp = await cfm.read(cfm.filestub + id, FileType.JSON_DICT);
         if (resp.status !== DataStatus.OK || resp.isEmpty()) {
-            return resp;
+            return resp as EmptyResponse;
         }
-        const incidenceData = IncidenceData.fromResponse<T>(resp, ...params);
+        const incidenceData = IncidenceData.fromObject<T>(resp.data, ...params);
 
         if (!typeCheck(incidenceData)) {
             return DataResponse.error('Data loaded is of wrong type');
@@ -2135,7 +2134,11 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
         data.forEach((value) => {
             const curDate = Format.dateStr(value.date);
-            completed[curDate].cases = value.cases;
+            if (completed[curDate] === undefined) {
+                console.warn(`completeHistory: key ${curDate} not found in completed, skip`);
+            } else {
+                completed[curDate].cases = value.cases;
+            }
         });
         const completeData = Object.values(completed);
         return completeData.reverse();
@@ -2200,7 +2203,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return new DataResponse(vaccineData);
     }
 
-    static async loadCountry(api: RkiService, code: string, loadVaccine: boolean = false, cacheMaxAge: number = CFG.def.cacheMaxAge): Promise<DataResponse<IncidenceData<MetaCountry>> | EmptyResponse> {
+    static async loadCountry(api: RkiService, code: string, loadVaccine = false, cacheMaxAge: number = CFG.def.cacheMaxAge): Promise<DataResponse<IncidenceData<MetaCountry>> | EmptyResponse> {
         const cached = ENV.cacheCountries.get(code);
         if (cached !== undefined) {
             return new DataResponse(cached);
@@ -2261,7 +2264,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         }
 
         // load data from cache. If its fresh enough we return it
-        const { cachedData, cachedAge } = await IncidenceData.loadCached(location, IncidenceData.loadAreaFromCache);
+        const {cachedData, cachedAge} = await IncidenceData.loadCached(location, IncidenceData.loadAreaFromCache);
 
         if (cachedData && cachedAge && cachedAge < cacheMaxAge * 1000) {
             console.log('Using cached data')
@@ -2320,7 +2323,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
     }
 
 
-    static async loadState(api: RkiService, id: string, name: string, ewz: number, loadVaccine: boolean = false, cacheMaxAge: number = CFG.def.cacheMaxAge): Promise<DataResponse<IncidenceData<MetaState>> | EmptyResponse> {
+    static async loadState(api: RkiService, id: string, name: string, ewz: number, loadVaccine = false, cacheMaxAge: number = CFG.def.cacheMaxAge): Promise<DataResponse<IncidenceData<MetaState>> | EmptyResponse> {
         const applicationCached = ENV.cacheStates.get(id);
         if (typeof applicationCached !== 'undefined') {
             return new DataResponse(applicationCached);
@@ -2389,7 +2392,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         } else {
             console.log('Loading from cache failed.');
         }
-        return { cachedData, cachedAge };
+        return {cachedData, cachedAge};
     }
 
     static isState(data: IncidenceData<MetaData>): data is IncidenceData<MetaState> {
@@ -2458,7 +2461,7 @@ class MultiAreaRow {
             console.warn(`BL_ID of area and state do not match. (${blId}, should be ${this.state.meta.BL_ID})`);
             return;
         }
-        const { id: areaId } = data;
+        const {id: areaId} = data;
         if (this.areas.has(areaId) || this.currentId === areaId) {
             console.log('Area has already been added. To update an area use updateAreaRow.');
             return;
@@ -2542,7 +2545,7 @@ class MultiAreaRows {
         const values: MultiAreaRow[] = this.currentLocation ? [this.currentLocation, ...this.mapStates.values()] : [...this.mapStates.values()];
 
         return values.map(value => {
-            return { areaRows: value.getAreaRows(), state: value.getState() };
+            return {areaRows: value.getAreaRows(), state: value.getState()};
         });
 
     }
@@ -2587,15 +2590,15 @@ class CustomLocation implements CustomLocationInterface {
         }
     }
 
-    static async getLocation({ latitude, longitude, name, type }: CustomLocation): Promise<CustomLocation> {
+    static async getLocation({latitude, longitude, name, type}: CustomLocation): Promise<CustomLocation> {
         if (latitude >= 0 && longitude >= 0) {
-            return { latitude, longitude, name, type, status: LocationStatus.OK };
+            return {latitude, longitude, name, type, status: LocationStatus.OK};
         }
         let _loc = await CustomLocation.current();
         if (_loc === null) {
             _loc = await CustomLocation.currentFromCache();
             if (_loc === null) {
-                return { latitude, longitude, name, type, status: LocationStatus.FAILED };
+                return {latitude, longitude, name, type, status: LocationStatus.FAILED};
             }
         }
         _loc.name = name;
@@ -2607,7 +2610,7 @@ class CustomLocation implements CustomLocationInterface {
         const _staticCoords = str.split(';').map(coords => coords.split(','));
 
         const _current = () => {
-            return { latitude: -1, longitude: -1, type: LocationType.CURRENT, name: undefined };
+            return {latitude: -1, longitude: -1, type: LocationType.CURRENT, name: undefined};
         };
 
         const _coords: { index: number, location: CustomLocation }[] = [];
@@ -2636,7 +2639,7 @@ class CustomLocation implements CustomLocationInterface {
                 type = LocationType.STATIC;
             }
 
-            _coords[index] = { index, location: { latitude, longitude, type, name } };
+            _coords[index] = {index, location: {latitude, longitude, type, name}};
         }
         if (_coords.length === 0) {
             return [_current()];
@@ -2661,13 +2664,13 @@ class CustomLocation implements CustomLocationInterface {
         return _locations;
     }
 
-    static async geoCache({ latitude, longitude, type }: CustomLocation, id: string): Promise<void> {
+    static async geoCache({latitude, longitude, type}: CustomLocation, id: string): Promise<void> {
         const lat = latitude.toFixed(CFG.geoCacheAccuracy);
         const lon = longitude.toFixed(CFG.geoCacheAccuracy);
         const key: string = lat + ',' + lon;
 
-        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON);
-        let data: { [key: string]: string };
+        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON_DICT);
+        let data: Record<string, unknown>;
         if (resp.status === DataStatus.NOT_FOUND) {
             console.log('GeoCache does not exist. File will be created...');
             data = {};
@@ -2689,24 +2692,24 @@ class CustomLocation implements CustomLocationInterface {
     }
 
     static async idFromCache({
-        latitude,
-        longitude,
-        type
-    }: CustomLocation): Promise<DataResponse<string> | EmptyResponse> {
+                                 latitude,
+                                 longitude,
+                                 type
+                             }: CustomLocation): Promise<DataResponse<string> | EmptyResponse> {
 
-        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON);
-        if (resp.status !== DataStatus.OK) {
+        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON_DICT);
+        if (resp.status !== DataStatus.OK || resp.isEmpty()) {
             console.log('Error loading geoCache file.');
             return DataResponse.error();
         }
-        const data: { [key: string]: string } = resp.data;
+        const data: Record<string, unknown> = resp.data;
 
-        let _key: string;
+        let _key: unknown;
         if (type === LocationType.CURRENT) {
             _key = data['gps'];
             if (_key === undefined) {
                 console.log('No key for current location.');
-                DataResponse.notFound();
+                return DataResponse.notFound();
             }
         } else {
             const _lat = latitude.toFixed(CFG.geoCacheAccuracy);
@@ -2714,8 +2717,12 @@ class CustomLocation implements CustomLocationInterface {
             _key = _lat + ',' + _lon;
         }
 
+        if (typeof _key !== 'string') {
+            console.warn(`idFromCache: Invalid key '${_key}'. Must be of type string.`);
+            return DataResponse.error();
+        }
         const id = data[_key];
-        if (id === undefined) {
+        if (id === undefined || typeof id !== 'string') {
             console.log(`No value for '${_key}' at accuracy ${CFG.geoCacheAccuracy}.`);
             return DataResponse.notFound();
         }
@@ -2724,27 +2731,31 @@ class CustomLocation implements CustomLocationInterface {
     }
 
     static async currentFromCache(): Promise<CustomLocation | null> {
-        const resp = await cfm.read('/coronaWidget_geo', FileType.JSON);
-        if (resp.status !== DataStatus.OK) {
+        const resp = await cfm.read('/coronaWidget_geo', FileType.JSON_DICT);
+        if (resp.status !== DataStatus.OK || resp.isEmpty()) {
             console.log('Error loading geoCache file.');
             return null;
         }
-        const data: { [key: string]: string } = resp.data;
+        const data: Record<string, unknown> = resp.data;
 
         const locStr = data['gps'];
         if (!locStr) {
-            console.log('Current location not cached.');
+            console.log('currentFromCache: Current location not cached.');
+            return null;
+        }
+        if (typeof locStr !== 'string') {
+            console.warn(`currentFromCache: Invalid value '${locStr}' for current location`);
             return null;
         }
         const parts = locStr.split(',');
         if (parts.length !== 2) {
-            console.log(`Invalid value cached for current location. (${locStr})`);
+            console.log(`currentFromCache: Invalid value cached for current location. (${locStr})`);
             return null;
         }
         const latitude = Number.parseFloat(parts[0]);
         const longitude = Number.parseFloat(parts[1]);
 
-        return { latitude, longitude, type: LocationType.CURRENT, status: LocationStatus.CACHED };
+        return {latitude, longitude, type: LocationType.CURRENT, status: LocationStatus.CACHED};
     }
 }
 
@@ -2831,20 +2842,29 @@ type EmptyResponse = DataResponse<null>
 enum FileType {
     TEXT = 'txt',
     JSON = 'json',
+    JSON_DICT = 'json_dict',
     OTHER = '',
     LOG = 'log',
 }
 
-interface FileManagerInterface {
+const FileExtensions: Record<FileType, string> = {
+    [FileType.TEXT]: 'txt',
+    [FileType.JSON]: 'json',
+    [FileType.JSON_DICT]: 'json',
+    [FileType.LOG]: 'log',
+    [FileType.OTHER]: '',
+}
+
+interface FileManagerInterface<D> {
     fm: FileManager;
     configDir: string;
     configPath: string;
     copy: (from: string, to: string) => void;
-    write: (data: any, file: string, type: FileType) => void;
-    read: (file: string, type: FileType) => Promise<DataResponse<any>>;
+    write: (data: D, file: string, type: FileType) => void;
+    read: (file: string, type: FileType) => Promise<DataResponse<D> | EmptyResponse>;
 }
 
-class CustomFileManager implements FileManagerInterface {
+class CustomFileManager implements FileManagerInterface<Record<string, unknown> | string> {
     configDir: string;
     configPath: string;
     scriptableDir: string;
@@ -2867,21 +2887,25 @@ class CustomFileManager implements FileManagerInterface {
         if (!this.fm.isDirectory(this.configPath)) this.fm.createDirectory(this.configPath);
     }
 
-    private getAbsolutePath(relFilePath: string, configDir: boolean = true): string {
+    private getAbsolutePath(relFilePath: string, configDir = true): string {
         return this.fm.joinPath(configDir ? this.configPath : this.scriptableDir, relFilePath);
     }
 
-    fileExists(filePath: string, configDir: boolean = true): boolean {
+    fileExists(filePath: string, configDir = true): boolean {
         return this.fm.fileExists(this.getAbsolutePath(filePath, configDir));
     }
 
-    copy(from: string, to: string, configDir: boolean = true): void {
+    copy(from: string, to: string, configDir = true): void {
         const pathFrom = this.getAbsolutePath(from, configDir);
         const pathTo = this.getAbsolutePath(to, configDir);
         this.fm.copy(pathFrom, pathTo);
     }
 
-    async read(file: string, type: FileType = FileType.TEXT, configDir: boolean = true): Promise<DataResponse<any> | EmptyResponse> {
+    async read(file: string): Promise<DataResponse<string> | EmptyResponse>
+    async read(file: string, type: FileType.JSON, configDir?: boolean): Promise<DataResponse<Record<string, unknown> | Array<unknown> | number | string | null> | EmptyResponse>
+    async read(file: string, type: FileType.JSON_DICT, configDir?: boolean): Promise<DataResponse<Record<string, unknown>> | EmptyResponse>
+    async read(file: string, type: FileType.TEXT, configDir?: boolean): Promise<DataResponse<string> | EmptyResponse>
+    async read(file: string, type: FileType = FileType.TEXT, configDir = true): Promise<DataResponse<Record<string, unknown> | Array<unknown> | number | string | null> | EmptyResponse> {
         const ext = CustomFileManager.extensionByType(type);
         const path = this.getAbsolutePath(file.endsWith(ext) ? file : file + ext, configDir);
 
@@ -2894,7 +2918,15 @@ class CustomFileManager implements FileManagerInterface {
                 const resStr = this.fm.readString(path);
 
                 if (type === FileType.JSON) {
-                    return new DataResponse<object>(JSON.parse(resStr));
+                    return new DataResponse<Record<string, string>>(JSON.parse(resStr));
+                } else if (type === FileType.JSON_DICT) {
+                    const dict = JSON.parse(resStr);
+                    if (typeof dict !== 'object' || Array.isArray(dict) || dict === null) {
+                        console.warn('read: parsed data not a dictionary.')
+                        return DataResponse.error();
+                    } else {
+                        return new DataResponse<Record<string, unknown>>(dict);
+                    }
                 } else {
                     return new DataResponse<string>(resStr);
                 }
@@ -2908,9 +2940,9 @@ class CustomFileManager implements FileManagerInterface {
         }
     }
 
-    write(data: object | string, file: string = this.filestub, type: FileType = FileType.TEXT, configDir: boolean = true): void {
+    write(data: Record<string, unknown> | string, file: string = this.filestub, type: FileType = FileType.TEXT, configDir = true): void {
         let dataStr;
-        if (type === FileType.JSON) {
+        if (type === FileType.JSON || type === FileType.JSON_DICT) {
             dataStr = JSON.stringify(data);
         } else if (type === FileType.TEXT) {
             dataStr = data;
@@ -2922,15 +2954,15 @@ class CustomFileManager implements FileManagerInterface {
         this.fm.writeString(path, dataStr);
     }
 
-    remove(filePath: string, baseDir: boolean = true): void {
+    remove(filePath: string, baseDir = true): void {
         this.fm.remove(this.getAbsolutePath(filePath, baseDir));
     }
 
-    modificationDate(filePath: string, baseDir: boolean = true): Date | null {
+    modificationDate(filePath: string, baseDir = true): Date | null {
         return this.fm.modificationDate(this.getAbsolutePath(filePath, baseDir))
     }
 
-    listContents(filePath: string, configDir: boolean = true): string[] {
+    listContents(filePath: string, configDir = true): string[] {
         return this.fm.listContents(this.getAbsolutePath(filePath, configDir));
     }
 
@@ -2939,6 +2971,7 @@ class CustomFileManager implements FileManagerInterface {
         switch (type) {
             case FileType.TEXT:
                 return dot + 'txt';
+            case FileType.JSON_DICT:
             case FileType.JSON:
                 return dot + 'json';
             case FileType.LOG:
@@ -2964,7 +2997,7 @@ class CustomFileManager implements FileManagerInterface {
 }
 
 class Format {
-    static dateStr(timestamp: string | number | Date, time: boolean = false): string {
+    static dateStr(timestamp: string | number | Date, time = false): string {
         const _date = new Date(timestamp);
         let str = `${_date.getDate().toString().padStart(2, '0')}` +
             `.${(_date.getMonth() + 1).toString().padStart(2, '0')}` +
@@ -2983,7 +3016,7 @@ class Format {
 
     }
 
-    static number(number: number, fractionDigits: number = 0, limit?: number): string {
+    static number(number: number, fractionDigits = 0, limit?: number): string {
         if (limit && number >= limit) fractionDigits = 0;
         return Number(number).toLocaleString(undefined, {
             maximumFractionDigits: fractionDigits,
@@ -2993,13 +3026,13 @@ class Format {
 
     static rValue(data: string): Rdata {
         const parsedData = Parse.rCSV(data, ',');
-        let res: Rdata = { date: null, r: 0 };
+        const res: Rdata = {date: null, r: 0};
         if (parsedData.length === 0) return res;
         // find used key
         let rValueField;
         Object.keys(parsedData[0]).forEach(key => {
             CSV_RVALUE_FIELDS.forEach(possibleRKey => {
-                if (key === possibleRKey){
+                if (key === possibleRKey) {
                     console.log(`rValue: match on key ${key}`);
                     rValueField = possibleRKey;
                 }
@@ -3023,13 +3056,13 @@ class Format {
 }
 
 class Parse {
-    static rCSV(rDataStr: string, separator: string = ','): {}[] {
-        let lines = rDataStr.split(/(?:\r\n|\n)+/).filter(el => el.length !== 0);
-        let headers = lines[0].split(separator);
-        let elements: { [key: string]: any }[] = [];
+    static rCSV(rDataStr: string, separator = ',') {
+        const lines = rDataStr.split(/(?:\r\n|\n)+/).filter(el => el.length !== 0);
+        const headers = lines[0].split(separator);
+        const elements: { [key: string]: any }[] = [];
         for (let i = 1; i < lines.length; i++) {
             let element = {};
-            let values = lines[i].split(separator);
+            const values = lines[i].split(separator);
             element = values.reduce(function (result, field, index) {
                 result[headers[index]] = field;
                 return result;
@@ -3069,12 +3102,12 @@ class Parse {
 
 class Helper {
     static getDateBefore(offset: number, startDate: Date = new Date()): string | undefined {
-        let offsetDate = new Date();
+        const offsetDate = new Date();
         offsetDate.setDate(startDate.getDate() - offset);
         return offsetDate.toISOString().split('T').shift();
     }
 
-    static keysAreDefined(object: any, keys: string[], name?: string, log: boolean = true): boolean {
+    static keysAreDefined(object: any, keys: string[], name?: string, log = true): boolean {
         for (const key of keys) {
             if (object[key] === undefined) {
                 if (log) console.warn(`Object is not of type '${name}'. Key '${key}' is missing.`)
@@ -3085,7 +3118,7 @@ class Helper {
         return true;
     }
 
-    static aggregateToMultiRows(areaRows: areaDataRow[], states: IncidenceData<MetaState>[], maxLength: number = 0): { areaRows: areaDataRow[]; state: IncidenceData<MetaState> }[] {
+    static aggregateToMultiRows(areaRows: areaDataRow[], states: IncidenceData<MetaState>[], maxLength = 0): { areaRows: areaDataRow[]; state: IncidenceData<MetaState> }[] {
         const multiRows = new MultiAreaRows(maxLength);
 
         for (const state of states) {
@@ -3118,8 +3151,8 @@ class Helper {
         }
     }
 
-    static async migrateConfig(path: string = 'config.json', target?: string): Promise<void> {
-        function helper<T>(src: { [key: string]: any } | undefined, target: T, keys: ([string, string] | [string])[]): T {
+    static async migrateConfig(path = 'config.json', target?: string): Promise<void> {
+        function helper<T>(src: Record<string, any> | undefined, target: T, keys: ([string, string] | [string])[]): T {
             if (!src) return target;
             for (const k of keys) {
                 if (src[k[0]] !== undefined) {
@@ -3132,12 +3165,12 @@ class Helper {
         if (!cfm.fileExists(path)) {
             return;
         }
-        const resp = await cfm.read(path, FileType.JSON);
+        const resp = await cfm.read(path, FileType.JSON_DICT);
         if (!(resp.status === DataStatus.OK && !resp.isEmpty())) {
             console.log('config already migrated');
             return;
         }
-        const old = resp.data;
+        const old = resp.data as Record<string, any>;
         let migrated: ConfigOpt = {
             version: '1.2.0',
             def: {}
@@ -3160,13 +3193,14 @@ class Helper {
         cfm.write(migrated, target ?? path, FileType.JSON);
     }
 
-    static async loadConfig(path: string = 'config.json', path_default: string = '.default.json') {
+    static async loadConfig(path = 'config.json', path_default = '.default.json') {
         if (!cfm.fileExists(path_default)) {
             console.warn('default config not found');
         } else {
-            const resp = await cfm.read(path_default, FileType.JSON);
+            const resp = await cfm.read(path_default, FileType.JSON_DICT);
             if (resp.status === DataStatus.OK && !resp.isEmpty()) {
-                const cfg_default: { [key: string]: { [key: string]: any } } = resp.data;
+                // Todo check format of loaded config
+                const cfg_default = resp.data as Record<string, Record<string, any>>;
                 Helper.mergeConfig(CFG, cfg_default);
             } else {
                 console.warn('error reading defaults');
@@ -3178,8 +3212,9 @@ class Helper {
         } else {
             const resp = await cfm.read(path, FileType.JSON);
             if (resp.status === DataStatus.OK && !resp.isEmpty()) {
+                // Todo check format of loaded config
                 console.log('Config loaded successfully.');
-                const cfg: { [key: string]: { [key: string]: any } } = resp.data;
+                const cfg = resp.data as Record<string, Record<string, any>>;
                 Helper.mergeConfig(CFG, cfg);
             } else {
                 console.warn('error reading config');
@@ -3221,12 +3256,17 @@ class Helper {
         }
         console.log('updateScript: start updated');
 
-        let _data: { [k: string]: any } = {};
+        let _data: Record<string, any> = {};
         if (cfm.fileExists('.data.json', true)) {
             const res = await cfm.read('.data', FileType.JSON, true);
 
             if (res.status === DataStatus.OK && !res.isEmpty()) {
-                _data = res.data;
+                if (typeof res.data !== 'object' || Array.isArray(res.data) || res.data === null) {
+                    console.warn('updateScript: _data is not a dictionary');
+                    _data = {}
+                } else {
+                    _data = res.data;
+                }
             } else {
                 _data = {};
             }
@@ -3356,7 +3396,7 @@ interface ApiVaccineData extends ApiVaccinated {
 interface RkiServiceInterface {
     cache: Map<string, any>
 
-    locationData: ({ longitude, latitude }: { latitude: number, longitude: number }) => Promise<any>;
+    locationData: ({longitude, latitude}: { latitude: number, longitude: number }) => Promise<any>;
     casesArea: (id: string) => Promise<boolean | IncidenceValue[]>;
     casesState: (id: string) => Promise<boolean | IncidenceValue[]>;
     casesGer: () => Promise<boolean | IncidenceValue[]>;
@@ -3434,7 +3474,7 @@ class RkiService /*implements RkiServiceInterface*/ {
         const cacheKey = type + '_' + url;
         const cached = this.cache.get(cacheKey);
 
-        let res: DataResponse<object | string> | EmptyResponse;
+        let res: DataResponse<Record<string, unknown> | string> | EmptyResponse;
         if (typeof cached === 'undefined') {
             res = await this.exec(url, type);
             if (res.status === DataStatus.OK) {
@@ -3466,9 +3506,9 @@ class RkiService /*implements RkiServiceInterface*/ {
 
     async casesState(id: string): Promise<false | IncidenceValue[]> {
         const apiStartDate = Helper.getDateBefore(CFG.def.maxShownDays + 7);
-        const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,%20-1)+AND+IdBundesland=${id}&objectIds=&time=&resultType=standard&outFields=&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22,%22onStatisticField%22%3A%22AnzahlFall%22,%22outStatisticFieldName%22%3A%22cases%22%7D%5D&having=&resultOffset=&resultRecordCount=&sqlFormat=none&token=`;
+        const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1, -1)+AND+IdBundesland=${id}&objectIds=&time=&resultType=standard&outFields=&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22,%22onStatisticField%22%3A%22AnzahlFall%22,%22outStatisticFieldName%22%3A%22cases%22%7D%5D&having=&resultOffset=&resultRecordCount=&sqlFormat=none&token=`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdBundesland=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`
-        const hist =  await this.getCases(urlToday, urlHistory);
+        const hist = await this.getCases(urlToday, urlHistory);
         return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
 
     }
@@ -3520,7 +3560,7 @@ class RkiService /*implements RkiServiceInterface*/ {
                 if (!lastDateToday || new Date(lastDateToday).setHours(0, 0, 0, 0) <= new Date(lastDateHistory).setHours(0, 0, 0, 0)) {
                     const lastReportDate = new Date(lastDateHistory);
                     lastDate = lastReportDate.setDate(lastReportDate.getDate() + 1);
-                }else{
+                } else {
                     lastDate = lastDateToday; // lastDateToday is defined and the latest date
                 }
 
@@ -3539,7 +3579,7 @@ class RkiService /*implements RkiServiceInterface*/ {
         return data;
     }
 
-    async locationData({ latitude, longitude }: { latitude: number; longitude: number }): Promise<false | ApiMetaArea> {
+    async locationData({latitude, longitude}: { latitude: number; longitude: number }): Promise<false | ApiMetaArea> {
         const lon = longitude.toFixed(3);
         const lat = latitude.toFixed(3);
         const outputFields = 'GEN,RS,EWZ,EWZ_BL,BL_ID,cases,cases_per_100k,cases7_per_100k,cases7_bl_per_100k,last_update,BL,IBZ';
@@ -3583,7 +3623,7 @@ class RkiService /*implements RkiServiceInterface*/ {
         if (response.status === DataStatus.OK && !response.isEmpty()) {
             return Format.rValue(response.data);
         } else {
-            return { date: null, r: 0 };
+            return {date: null, r: 0};
         }
     }
 
@@ -3605,19 +3645,23 @@ class RkiService /*implements RkiServiceInterface*/ {
 }
 
 console.log(`Version: ${VERSION}`);
-const cfm = new CustomFileManager(DIR, FILE);
+const cfm = new CustomFileManager(DIR_DEV, FILE_DEV);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 await Helper.migrateConfig();
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 await Helper.loadConfig();
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 await Helper.updateScript();
 
-const defaultSmall: string = '';
-const defaultMedium: string = '0;1,52.02,8.54';
-const defaultLarge: string = '0; 1,52.02,8.54; 2,48.11,11.60; 3,50.94,7.00; 4,50.11,8.67; 5,48.78,9.19; 6,51.22,6.77';
+const defaultSmall = '';
+const defaultMedium = '0;1,52.02,8.54';
+const defaultLarge = '0; 1,52.02,8.54; 2,48.11,11.60; 3,50.94,7.00; 4,50.11,8.67; 5,48.78,9.19; 6,51.22,6.77';
 
 const widget = new IncidenceListWidget(new RkiService(), args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.def);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 Script.setWidget(await widget.init());
 Script.complete();

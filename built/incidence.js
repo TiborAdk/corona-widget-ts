@@ -3,7 +3,7 @@
 // icon-color: red; icon-glyph: briefcase-medical;
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 const CFG = {
-    version: '1.4.0',
+    version: '1.5.0',
     autoUpdate: true,
     autoUpdateInterval: 1,
     geoCacheAccuracy: 1,
@@ -22,7 +22,7 @@ const CFG = {
     },
     widgets: {},
 };
-const VERSION = '1.4.0';
+const VERSION = '1.5.0';
 const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
 const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
 const DIR_DEV = 'corona_widget_dev';
@@ -72,9 +72,8 @@ const ENV = {
         ['15', { short: 'ST', name: 'Sachsen-Anhalt' }],
         ['16', { short: 'TH', name: 'Thüringen' }],
     ]),
-    cache: new Map(),
     script: {
-        filename: this.module.filename.replace(/^.*[\\\/]/, ''),
+        filename: this.module.filename.replace(/^.*[\\/]/, ''),
     },
     version: "1.4.0"
 };
@@ -951,7 +950,7 @@ class AreaErrorRowStack extends AreaRowStack {
         super(stack, widgetSize, undefined, undefined, status, name, undefined, padding, cornerRadius, elemDepth);
     }
     addDummyData() {
-        let dummyGraphData = [];
+        const dummyGraphData = [];
         for (let i = 0; i < 21; i++) {
             dummyGraphData.push({ cases: 0, incidence: 0 });
         }
@@ -1085,7 +1084,7 @@ class ListStack extends CustomWidgetStack {
         }
         const sliced = data.slice(0, this.maxLength);
         for (let i = 0; i < sliced.length; i++) {
-            let item = sliced[i];
+            const item = sliced[i];
             this.addItem(item, undefined, ...args);
         }
     }
@@ -1213,7 +1212,7 @@ class IncidenceListWidget extends CustomListWidget {
             const areaWithIncidence = IncidenceData.calcIncidence(area, this.config.incidenceDisableLive);
             const maxValues = areaWithIncidence.getMax();
             for (const maxKey in maxValues) {
-                if (maxValues.hasOwnProperty(maxKey)) {
+                if (Object.prototype.hasOwnProperty.call(maxValues, maxKey)) {
                     if (!graphMinMax.max) {
                         graphMinMax.max = {};
                         graphMinMax.max[maxKey] = maxValues[maxKey];
@@ -1338,7 +1337,7 @@ class UI {
         }
         for (let i = 0; i + iOffset < data.length; i++) {
             const item = data[i + iOffset];
-            let value = parseFloat(item[valueIndex]);
+            let value = parseFloat(item[valueIndex].toString()); // Todo: i don't think we need to convert from number to string to number
             if (value === -1 && i === 0)
                 value = 10;
             const h = Math.max(minH, (Math.abs(value) / max) * height);
@@ -1528,16 +1527,16 @@ class CustomData {
         throw new Error(`'fromResponse' must be implemented.`);
     }
     getMaxFromDataObjectByIndex(index) {
-        return CustomData.getMaxFromArrayOfObjectsByIndex(this.data, index);
+        return CustomData.getMaxFromArrayOfObjectsByKey(this.data, index);
     }
-    static getMaxFromArrayOfObjectsByIndex(data, index) {
-        return Math.max(...data.map(value => value[index] ?? 0));
+    static getMaxFromArrayOfObjectsByKey(data, index) {
+        return Math.max(...data.map(value => typeof value[index] === "number" ? value[index] : 0));
     }
     get storageFileName() {
         return `${(this.fm?.filestub ?? '') + this.id}.json`;
     }
     async save() {
-        await this.fm?.write(this.getStorageObject(), this.storageFileName, FileType.JSON);
+        this.fm?.write(this.getStorageObject(), this.storageFileName, FileType.JSON);
     }
 }
 class IncidenceData extends CustomData {
@@ -1572,10 +1571,7 @@ class IncidenceData extends CustomData {
         }, {});
     }
     getStorageObject() {
-        const data = new IncidenceData(this.id, this.data, this.meta);
-        delete data.location;
-        delete data.fm;
-        return data;
+        return { id: this.id, data: this.data, meta: this.meta };
     }
     isArea() {
         return IncidenceData.isArea(this);
@@ -1590,6 +1586,9 @@ class IncidenceData extends CustomData {
         const data = response.data;
         return new IncidenceData(data.id, data.data, data.meta, location ?? data.location);
     }
+    static fromObject(data, location) {
+        return new IncidenceData(data.id, data.data, data.meta, location ?? data.location);
+    }
     static isIncidenceValue(value) {
         return value.date && !isNaN(value.date) && value.date_str;
     }
@@ -1602,11 +1601,11 @@ class IncidenceData extends CustomData {
         return true;
     }
     static async loadFromCache(id, typeCheck, ...params) {
-        const resp = await cfm.read(cfm.filestub + id, FileType.JSON);
+        const resp = await cfm.read(cfm.filestub + id, FileType.JSON_DICT);
         if (resp.status !== DataStatus.OK || resp.isEmpty()) {
             return resp;
         }
-        const incidenceData = IncidenceData.fromResponse(resp, ...params);
+        const incidenceData = IncidenceData.fromObject(resp.data, ...params);
         if (!typeCheck(incidenceData)) {
             return DataResponse.error('Data loaded is of wrong type');
         }
@@ -1647,7 +1646,12 @@ class IncidenceData extends CustomData {
         }
         data.forEach((value) => {
             const curDate = Format.dateStr(value.date);
-            completed[curDate].cases = value.cases;
+            if (completed[curDate] === undefined) {
+                console.warn(`completeHistory: key ${curDate} not found in completed, skip`);
+            }
+            else {
+                completed[curDate].cases = value.cases;
+            }
         });
         const completeData = Object.values(completed);
         return completeData.reverse();
@@ -2086,7 +2090,7 @@ class CustomLocation {
         const lat = latitude.toFixed(CFG.geoCacheAccuracy);
         const lon = longitude.toFixed(CFG.geoCacheAccuracy);
         const key = lat + ',' + lon;
-        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON);
+        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON_DICT);
         let data;
         if (resp.status === DataStatus.NOT_FOUND) {
             console.log('GeoCache does not exist. File will be created...');
@@ -2108,8 +2112,8 @@ class CustomLocation {
         await cfm.write(data, `${cfm.filestub}_geo`, FileType.JSON);
     }
     static async idFromCache({ latitude, longitude, type }) {
-        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON);
-        if (resp.status !== DataStatus.OK) {
+        const resp = await cfm.read(`${cfm.filestub}_geo`, FileType.JSON_DICT);
+        if (resp.status !== DataStatus.OK || resp.isEmpty()) {
             console.log('Error loading geoCache file.');
             return DataResponse.error();
         }
@@ -2119,7 +2123,7 @@ class CustomLocation {
             _key = data['gps'];
             if (_key === undefined) {
                 console.log('No key for current location.');
-                DataResponse.notFound();
+                return DataResponse.notFound();
             }
         }
         else {
@@ -2127,28 +2131,36 @@ class CustomLocation {
             const _lon = longitude.toFixed(CFG.geoCacheAccuracy);
             _key = _lat + ',' + _lon;
         }
+        if (typeof _key !== 'string') {
+            console.warn(`idFromCache: Invalid key '${_key}'. Must be of type string.`);
+            return DataResponse.error();
+        }
         const id = data[_key];
-        if (id === undefined) {
+        if (id === undefined || typeof id !== 'string') {
             console.log(`No value for '${_key}' at accuracy ${CFG.geoCacheAccuracy}.`);
             return DataResponse.notFound();
         }
         return new DataResponse(id);
     }
     static async currentFromCache() {
-        const resp = await cfm.read('/coronaWidget_geo', FileType.JSON);
-        if (resp.status !== DataStatus.OK) {
+        const resp = await cfm.read('/coronaWidget_geo', FileType.JSON_DICT);
+        if (resp.status !== DataStatus.OK || resp.isEmpty()) {
             console.log('Error loading geoCache file.');
             return null;
         }
         const data = resp.data;
         const locStr = data['gps'];
         if (!locStr) {
-            console.log('Current location not cached.');
+            console.log('currentFromCache: Current location not cached.');
+            return null;
+        }
+        if (typeof locStr !== 'string') {
+            console.warn(`currentFromCache: Invalid value '${locStr}' for current location`);
             return null;
         }
         const parts = locStr.split(',');
         if (parts.length !== 2) {
-            console.log(`Invalid value cached for current location. (${locStr})`);
+            console.log(`currentFromCache: Invalid value cached for current location. (${locStr})`);
             return null;
         }
         const latitude = Number.parseFloat(parts[0]);
@@ -2216,9 +2228,17 @@ var FileType;
 (function (FileType) {
     FileType["TEXT"] = "txt";
     FileType["JSON"] = "json";
+    FileType["JSON_DICT"] = "json_dict";
     FileType["OTHER"] = "";
     FileType["LOG"] = "log";
 })(FileType || (FileType = {}));
+const FileExtensions = {
+    [FileType.TEXT]: 'txt',
+    [FileType.JSON]: 'json',
+    [FileType.JSON_DICT]: 'json',
+    [FileType.LOG]: 'log',
+    [FileType.OTHER]: '',
+};
 class CustomFileManager {
     constructor(configDir, filestub) {
         try {
@@ -2259,6 +2279,16 @@ class CustomFileManager {
                 if (type === FileType.JSON) {
                     return new DataResponse(JSON.parse(resStr));
                 }
+                else if (type === FileType.JSON_DICT) {
+                    const dict = JSON.parse(resStr);
+                    if (typeof dict !== 'object' || Array.isArray(dict) || dict === null) {
+                        console.warn('read: parsed data not a dictionary.');
+                        return DataResponse.error();
+                    }
+                    else {
+                        return new DataResponse(dict);
+                    }
+                }
                 else {
                     return new DataResponse(resStr);
                 }
@@ -2275,7 +2305,7 @@ class CustomFileManager {
     }
     write(data, file = this.filestub, type = FileType.TEXT, configDir = true) {
         let dataStr;
-        if (type === FileType.JSON) {
+        if (type === FileType.JSON || type === FileType.JSON_DICT) {
             dataStr = JSON.stringify(data);
         }
         else if (type === FileType.TEXT) {
@@ -2302,6 +2332,7 @@ class CustomFileManager {
         switch (type) {
             case FileType.TEXT:
                 return dot + 'txt';
+            case FileType.JSON_DICT:
             case FileType.JSON:
                 return dot + 'json';
             case FileType.LOG:
@@ -2350,7 +2381,7 @@ class Format {
     }
     static rValue(data) {
         const parsedData = Parse.rCSV(data, ',');
-        let res = { date: null, r: 0 };
+        const res = { date: null, r: 0 };
         if (parsedData.length === 0)
             return res;
         // find used key
@@ -2381,12 +2412,12 @@ class Format {
 }
 class Parse {
     static rCSV(rDataStr, separator = ',') {
-        let lines = rDataStr.split(/(?:\r\n|\n)+/).filter(el => el.length !== 0);
-        let headers = lines[0].split(separator);
-        let elements = [];
+        const lines = rDataStr.split(/(?:\r\n|\n)+/).filter(el => el.length !== 0);
+        const headers = lines[0].split(separator);
+        const elements = [];
         for (let i = 1; i < lines.length; i++) {
             let element = {};
-            let values = lines[i].split(separator);
+            const values = lines[i].split(separator);
             element = values.reduce(function (result, field, index) {
                 result[headers[index]] = field;
                 return result;
@@ -2425,7 +2456,7 @@ class Parse {
 }
 class Helper {
     static getDateBefore(offset, startDate = new Date()) {
-        let offsetDate = new Date();
+        const offsetDate = new Date();
         offsetDate.setDate(startDate.getDate() - offset);
         return offsetDate.toISOString().split('T').shift();
     }
@@ -2482,7 +2513,7 @@ class Helper {
         if (!cfm.fileExists(path)) {
             return;
         }
-        const resp = await cfm.read(path, FileType.JSON);
+        const resp = await cfm.read(path, FileType.JSON_DICT);
         if (!(resp.status === DataStatus.OK && !resp.isEmpty())) {
             console.log('config already migrated');
             return;
@@ -2512,8 +2543,9 @@ class Helper {
             console.warn('default config not found');
         }
         else {
-            const resp = await cfm.read(path_default, FileType.JSON);
+            const resp = await cfm.read(path_default, FileType.JSON_DICT);
             if (resp.status === DataStatus.OK && !resp.isEmpty()) {
+                // Todo check format of loaded config
                 const cfg_default = resp.data;
                 Helper.mergeConfig(CFG, cfg_default);
             }
@@ -2527,6 +2559,7 @@ class Helper {
         else {
             const resp = await cfm.read(path, FileType.JSON);
             if (resp.status === DataStatus.OK && !resp.isEmpty()) {
+                // Todo check format of loaded config
                 console.log('Config loaded successfully.');
                 const cfg = resp.data;
                 Helper.mergeConfig(CFG, cfg);
@@ -2568,7 +2601,13 @@ class Helper {
         if (cfm.fileExists('.data.json', true)) {
             const res = await cfm.read('.data', FileType.JSON, true);
             if (res.status === DataStatus.OK && !res.isEmpty()) {
-                _data = res.data;
+                if (typeof res.data !== 'object' || Array.isArray(res.data) || res.data === null) {
+                    console.warn('updateScript: _data is not a dictionary');
+                    _data = {};
+                }
+                else {
+                    _data = res.data;
+                }
             }
             else {
                 _data = {};
@@ -2761,7 +2800,7 @@ class RkiService /*implements RkiServiceInterface*/ {
     }
     async casesState(id) {
         const apiStartDate = Helper.getDateBefore(CFG.def.maxShownDays + 7);
-        const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,%20-1)+AND+IdBundesland=${id}&objectIds=&time=&resultType=standard&outFields=&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22,%22onStatisticField%22%3A%22AnzahlFall%22,%22outStatisticFieldName%22%3A%22cases%22%7D%5D&having=&resultOffset=&resultRecordCount=&sqlFormat=none&token=`;
+        const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1, -1)+AND+IdBundesland=${id}&objectIds=&time=&resultType=standard&outFields=&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22,%22onStatisticField%22%3A%22AnzahlFall%22,%22outStatisticFieldName%22%3A%22cases%22%7D%5D&having=&resultOffset=&resultRecordCount=&sqlFormat=none&token=`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdBundesland=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`;
         const hist = await this.getCases(urlToday, urlHistory);
         return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
@@ -2887,17 +2926,21 @@ class RkiService /*implements RkiServiceInterface*/ {
     }
 }
 console.log(`Version: ${VERSION}`);
-const cfm = new CustomFileManager(DIR, FILE);
+const cfm = new CustomFileManager(DIR_DEV, FILE_DEV);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 await Helper.migrateConfig();
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 await Helper.loadConfig();
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 await Helper.updateScript();
 const defaultSmall = '';
 const defaultMedium = '0;1,52.02,8.54';
 const defaultLarge = '0; 1,52.02,8.54; 2,48.11,11.60; 3,50.94,7.00; 4,50.11,8.67; 5,48.78,9.19; 6,51.22,6.77';
 const widget = new IncidenceListWidget(new RkiService(), args.widgetParameter ?? defaultLarge, config.widgetFamily, [], CFG.def);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 Script.setWidget(await widget.init());
 Script.complete();
