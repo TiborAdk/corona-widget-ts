@@ -1182,7 +1182,6 @@ class IncidenceListWidget extends CustomListWidget {
             this.setPadding(6, 6, 6, 6);
         }
         const maxShown = this.isLarge() ? 6 : this.isMedium() ? 2 : 1;
-        this.locations.slice(0, maxShown);
         this.header = this.addTopBar();
         this.addSpacer(5);
         this.areaListStack = this.addAreaRowsStack();
@@ -1200,15 +1199,29 @@ class IncidenceListWidget extends CustomListWidget {
             this.setCountry(dataGer);
         }
         // AREAS
+        let currentLocation;
+        const areaRows = [];
+        const areaIds = [];
         const graphMinMax = { min: { incidence: 0, cases: 0 }, max: { incidence: 0, cases: 0 } };
-        const areaRows = await Promise.all(this.locations.map(async (location) => {
+        for (const location of this.locations) {
             const respArea = await IncidenceData.loadArea(this.api, location);
             const status = respArea.status;
             if (!respArea.succeeded() || respArea.isEmpty()) {
-                console.warn('Loading Area failed. Status: ' + status);
-                return { status: status };
+                console.warn('fillWidget: Loading Area failed. Status: ' + status);
+                if (location.type === LocationType.CURRENT) {
+                    currentLocation = { status, name: location.name };
+                }
+                else {
+                    areaRows.push({ status, name: location.name });
+                }
+                continue;
             }
             const area = respArea.data;
+            const areaId = area.meta.RS;
+            if (areaIds.includes(areaId) || currentLocation?.data?.meta.RS === areaId) {
+                console.log(`fillWidget: skipp duplicate area. areaId: ${areaId}`);
+                continue;
+            }
             const areaWithIncidence = IncidenceData.calcIncidence(area, this.config.incidenceDisableLive);
             const maxValues = areaWithIncidence.getMax();
             for (const maxKey in maxValues) {
@@ -1225,17 +1238,31 @@ class IncidenceListWidget extends CustomListWidget {
                     }
                 }
             }
-            return { status: status, data: areaWithIncidence, name: location.name };
-        }));
-        console.log('MaxValues: ' + JSON.stringify(graphMinMax));
+            if (location.type === LocationType.CURRENT) {
+                currentLocation = { status, data: areaWithIncidence, name: location.name };
+            }
+            else {
+                areaIds.push(areaId);
+                areaRows.push({
+                    status,
+                    data: areaWithIncidence,
+                    name: location.name,
+                });
+            }
+        }
+        const areaRowsFiltered = areaRows.filter(elem => elem.data?.meta.RS !== currentLocation?.data?.meta.RS);
+        if (currentLocation) {
+            areaRowsFiltered.unshift(currentLocation);
+        }
+        console.log('IncidenceListWidget.fillWidget: MaxValues: ' + JSON.stringify(graphMinMax));
         if (this.isSmall()) {
-            const { status: dataStatus, data } = areaRows[0];
+            const { status: dataStatus, data } = areaRowsFiltered[0];
             this.setStatus(dataStatus, data?.location);
         }
         // STATES
         const processed = {};
         const states = [];
-        for (const row of areaRows.filter(row => row.data !== undefined)) {
+        for (const row of areaRowsFiltered.filter(row => row.data !== undefined)) {
             if (row.data === undefined) {
                 continue;
             }
@@ -1253,15 +1280,15 @@ class IncidenceListWidget extends CustomListWidget {
             }
         }
         if (this.isLarge() && this.config.alternateLarge) {
-            const multiRows = Helper.aggregateToMultiRows(areaRows, states, 8);
+            const multiRows = Helper.aggregateToMultiRows(areaRowsFiltered, states, 8);
             this.areaListStack.addMultiAreas(multiRows, this.incidenceTrend, graphMinMax);
         }
         else if (this.isLarge() && !this.config.alternateLarge) {
-            this.addAreas(areaRows.slice(0, 6), graphMinMax);
+            this.addAreas(areaRowsFiltered.slice(0, 6), graphMinMax);
             this.addStates(states);
         }
         else {
-            this.addAreas(areaRows, graphMinMax);
+            this.addAreas(areaRowsFiltered, graphMinMax);
             const shownStates = states;
             if (this.isSmall() && respGer.succeeded() && !respGer.isEmpty())
                 shownStates.push(respGer.data);

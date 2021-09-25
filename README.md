@@ -70,6 +70,8 @@ Dabei ist Folgendes zu beachten.
 2. Bis zur größten Position (`POS`) müssen alle Positionen vorkommen außer die Position `0`.
 3. Wenn `POS = 0` nicht angegeben ist, wird an ihrer Stelle der aktuelle Standort angezeigt.
 4. Wenn bei einem `STANDORT` `LAT` und `LON` nicht gesetzt oder leer sind, wird die aktuelle Position verwendet.
+5. Der aktuelle Standort wird immer an erster Stelle angezeigt.
+6. Duplizierte Standorte werden gefiltert und nur einmal angezeigt.
 
 ## Beispiele
 
@@ -83,7 +85,7 @@ Dabei ist Folgendes zu beachten.
 
 ## Default
 
-Wenn keine Parameter angegeben sind werden folgende Standorte verwendet:
+Wenn keine Parameter angegeben sind, werden folgende Standorte verwendet:
 
 1. Aktueller Standort
 2. Bielefeld
