@@ -1693,7 +1693,6 @@ class IncidenceData extends CustomData {
                 currentDate.setDate(currentDate.getDate() + 1);
             }
         }
-        console.log(completed);
         return completed;
     }
     static calcIncidence(dataObject, disableLive = CFG.def.incidenceDisableLive) {

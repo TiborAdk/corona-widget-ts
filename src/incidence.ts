@@ -2180,7 +2180,6 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
             }
         }
 
-        console.log(completed);
         return completed;
     }
 
