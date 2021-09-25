@@ -902,7 +902,8 @@ class HistoryCasesStack extends CustomWidgetStack {
     }
 
     setCases(cases?: number): void {
-        this.casesText.text = cases && cases > 0 ? '+' + Format.number(cases) : 'n/v';
+        //console.log(`HistoryCasesStack.setCases: cases: ${cases}`);
+        this.casesText.text = cases !== undefined && cases >= 0 ? '+' + cases : 'n/v';
     }
 
     setGraph(data: IncidenceGraphData[], minmax?: IncGraphMinMax): void {

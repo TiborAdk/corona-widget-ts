@@ -647,7 +647,8 @@ class HistoryCasesStack extends CustomWidgetStack {
             casesStack.addSpacer();
     }
     setCases(cases) {
-        this.casesText.text = cases && cases > 0 ? '+' + Format.number(cases) : 'n/v';
+        //console.log(`HistoryCasesStack.setCases: cases: ${cases}`);
+        this.casesText.text = cases !== undefined && cases >= 0 ? '+' + cases : 'n/v';
     }
     setGraph(data, minmax) {
         this.graphImage.image = UI.generateGraph(data, this.graphSize, minmax, CFG.def.graphShowIndex, 'incidence', Align.RIGHT).getImage();
