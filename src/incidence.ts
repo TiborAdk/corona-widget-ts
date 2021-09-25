@@ -3676,7 +3676,7 @@ class RkiService /*implements RkiServiceInterface*/ {
 }
 
 console.log(`Version: ${VERSION}`);
-const cfm = new CustomFileManager(DIR_DEV, FILE_DEV);
+const cfm = new CustomFileManager(DIR, FILE);
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 await Helper.migrateConfig();
