@@ -2112,36 +2112,39 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
     }
 
 
-    static completeHistory(data: IncidenceValue[], offset?: number, last?: Date | number | string): IncidenceValue[] {
-        offset = offset ?? CFG.def.maxShownDays + 7;
+    static completeHistory(data: IncidenceValue[], offset = CFG.def.maxShownDays + 7, last?: Date | number | string): IncidenceValue[] {
         if (!Array.isArray(data)) {
             throw Error('completeHistory: data is not an array');
         }
 
         data = data.sort((a, b) => a.date - b.date);
 
-        const lastDateHistory = new Date(last ?? data[data.length - 1].date).getTime();
-        const completed: { [key: string]: IncidenceValue } = {};
+        const lastDate = new Date(last ?? data[data.length - 1].date)
+        const firstDate = new Date(new Date(lastDate).setDate(lastDate.getDate() - Math.abs(offset)));
+        const completed: IncidenceValue[] = [];
 
-        for (let i = 0; i <= offset; i++) {
-            const lastReportDate = new Date(lastDateHistory);
-            const prevDate = lastReportDate.setDate(lastReportDate.getDate() - i);
-            completed[Format.dateStr(prevDate)] = {
-                date: prevDate,
-                date_str: Format.dateStr(prevDate),
-            };
+        const currentDate = new Date(firstDate);
+        let i = 0;
+
+        while (currentDate <= lastDate) {
+            if (i < data.length) {
+                const value = data[i];
+                if (new Date(value.date).setHours(0, 0, 0, 0) === new Date(currentDate).setHours(0, 0, 0, 0)) {
+                    //console.log(`CompleteHistory: use values from data. i: ${i}, date: ${currentDate}`)
+                    completed.push({...value, date: currentDate.getTime(), date_str: Format.dateStr(currentDate)});
+                    i++;
+                } else {
+                    //console.log(`CompleteHistory: fill missing value. i: ${i} date: ${currentDate}, value.date: ${new Date(value.date)}`);
+                    completed.push({date: currentDate.getTime(), date_str: Format.dateStr(currentDate)});
+                }
+            } else {
+                //console.log(`CompleteHistory: fill missing value, no data left. i: ${i}, date: ${currentDate}`);
+                completed.push({date: currentDate.getTime(), date_str: Format.dateStr(currentDate)});
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        data.forEach((value) => {
-            const curDate = Format.dateStr(value.date);
-            if (completed[curDate] === undefined) {
-                console.warn(`completeHistory: key ${curDate} not found in completed, skip`);
-            } else {
-                completed[curDate].cases = value.cases;
-            }
-        });
-        const completeData = Object.values(completed);
-        return completeData.reverse();
+        return completed;
     }
 
     static calcIncidence<T extends MetaData>(dataObject: IncidenceData<T>, disableLive: boolean = CFG.def.incidenceDisableLive): IncidenceData<T> {

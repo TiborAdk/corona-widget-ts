@@ -1628,33 +1628,36 @@ class IncidenceData extends CustomData {
     static async loadCountryFromCache(id) {
         return IncidenceData.loadFromCache(id, IncidenceData.isCountry);
     }
-    static completeHistory(data, offset, last) {
-        offset = offset ?? CFG.def.maxShownDays + 7;
+    static completeHistory(data, offset = CFG.def.maxShownDays + 7, last) {
         if (!Array.isArray(data)) {
             throw Error('completeHistory: data is not an array');
         }
         data = data.sort((a, b) => a.date - b.date);
-        const lastDateHistory = new Date(last ?? data[data.length - 1].date).getTime();
-        const completed = {};
-        for (let i = 0; i <= offset; i++) {
-            const lastReportDate = new Date(lastDateHistory);
-            const prevDate = lastReportDate.setDate(lastReportDate.getDate() - i);
-            completed[Format.dateStr(prevDate)] = {
-                date: prevDate,
-                date_str: Format.dateStr(prevDate),
-            };
-        }
-        data.forEach((value) => {
-            const curDate = Format.dateStr(value.date);
-            if (completed[curDate] === undefined) {
-                console.warn(`completeHistory: key ${curDate} not found in completed, skip`);
+        const lastDate = new Date(last ?? data[data.length - 1].date);
+        const firstDate = new Date(new Date(lastDate).setDate(lastDate.getDate() - Math.abs(offset)));
+        const completed = [];
+        const currentDate = new Date(firstDate);
+        let i = 0;
+        while (currentDate <= lastDate) {
+            if (i < data.length) {
+                const value = data[i];
+                if (new Date(value.date).setHours(0, 0, 0, 0) === new Date(currentDate).setHours(0, 0, 0, 0)) {
+                    //console.log(`CompleteHistory: use values from data. i: ${i}, date: ${currentDate}`)
+                    completed.push({ ...value, date: currentDate.getTime(), date_str: Format.dateStr(currentDate) });
+                    i++;
+                }
+                else {
+                    //console.log(`CompleteHistory: fill missing value. i: ${i} date: ${currentDate}, value.date: ${new Date(value.date)}`);
+                    completed.push({ date: currentDate.getTime(), date_str: Format.dateStr(currentDate) });
+                }
             }
             else {
-                completed[curDate].cases = value.cases;
+                //console.log(`CompleteHistory: fill missing value, no data left. i: ${i}, date: ${currentDate}`);
+                completed.push({ date: currentDate.getTime(), date_str: Format.dateStr(currentDate) });
             }
-        });
-        const completeData = Object.values(completed);
-        return completeData.reverse();
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        return completed;
     }
     static calcIncidence(dataObject, disableLive = CFG.def.incidenceDisableLive) {
         const reversedData = dataObject.data.reverse();
