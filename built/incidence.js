@@ -3,7 +3,7 @@
 // icon-color: red; icon-glyph: briefcase-medical;
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 const CFG = {
-    version: '1.5.2',
+    version: '1.6',
     autoUpdate: true,
     autoUpdateInterval: 1,
     geoCacheAccuracy: 1,
@@ -22,7 +22,7 @@ const CFG = {
     },
     widgets: {},
 };
-const VERSION = '1.5.2';
+const VERSION = '1.6';
 const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
 const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
 const DIR_DEV = 'corona_widget_dev';
@@ -75,7 +75,7 @@ const ENV = {
     script: {
         filename: this.module.filename.replace(/^.*[\\/]/, ''),
     },
-    version: "1.5.2"
+    version: "1.6"
 };
 var DataStatus;
 (function (DataStatus) {
@@ -2663,7 +2663,7 @@ class Helper {
             console.log('updateScript: abort. getting config failed.');
             return;
         }
-        if (!Helper.checkLatest(VERSION, cfg.version)) {
+        if (VERSION >= cfg.version) {
             console.log('updateScript: skip. provided version not newer than current or invalid');
             _data['lastCheck'] = currentDate;
             cfm.write(_data, '.data.json', FileType.JSON, true); // .data.json is stored in configDir
@@ -2717,8 +2717,8 @@ class Helper {
     static checkLatest(current, version) {
         console.log(current + ' ' + version);
         const arrayCurrent = current.split('.');
-        if (arrayCurrent.length < 2) {
-            console.warn(`checkLatest: invalid version ''${version}`);
+        if (arrayCurrent.length < 2 || arrayCurrent.length > 3) {
+            console.warn(`checkLatest: invalid current version '${version}'`);
             return false;
         }
         if (!version) {
@@ -2726,11 +2726,11 @@ class Helper {
             return false;
         }
         const arrayVersion = version.split('.');
-        if (arrayVersion.length < 2) {
+        if (arrayVersion.length < 2 || arrayVersion.length > 3) {
             console.warn(`checkLatest: invalid version '${version}'`);
             return false;
         }
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < arrayVersion.length; i++) {
             if (arrayCurrent[i] < arrayVersion[i]) {
                 return true;
             }
