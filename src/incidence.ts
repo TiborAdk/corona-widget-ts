@@ -1575,7 +1575,7 @@ class IncidenceListWidget extends CustomListWidget {
         }
 
         const maxShown = this.isLarge() ? 6 : this.isMedium() ? 2 : 1;
-        this.parameters.slice(0, maxShown);
+        this.locations.slice(0, maxShown);
 
         this.header = this.addTopBar();
         this.addSpacer(5);
