@@ -1670,12 +1670,12 @@ class IncidenceData extends CustomData {
         while (currentDate <= lastDate) {
             if (i < data.length) {
                 const value = data[i];
-                if (currentDate > new Date(value.date)) {
+                if (currentDate.getDate() > new Date(value.date).getDate()) {
                     console.log(`completeHistory: skipp old value. date: ${currentDate} > value.date ${new Date(value.date)}`);
                     i++;
                     continue;
                 }
-                if (value.date === currentDate.getTime()) {
+                if (new Date(value.date).getDate() === currentDate.getDate()) {
                     //console.log(`completeHistory: use values from data. i: ${i}, date: ${currentDate}`)
                     completed.push({ ...value, date: currentDate.getTime(), date_str: Format.dateStr(currentDate) });
                     i++;
@@ -2829,7 +2829,7 @@ class RkiService /*implements RkiServiceInterface*/ {
         const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,-1)%20AND%20IdLandkreis%3D${id}&objectIds&time&resultType=standard&outFields&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields&groupByFieldsForStatistics&outStatistics=%5B%7B%22statisticType%22:%22sum%22,%22onStatisticField%22:%22AnzahlFall%22,%22outStatisticFieldName%22:%22cases%22%7D,%20%7B%22statisticType%22:%22max%22,%22onStatisticField%22:%22MeldeDatum%22,%22outStatisticFieldName%22:%22date%22%7D%5D&having&resultOffset&resultRecordCount&sqlFormat=none&token`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdLandkreis=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`;
         const hist = await this.getCases(urlToday, urlHistory);
-        return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, -1 * new Date().getTimezoneOffset(), 0, 0));
+        return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
     }
     async casesGer() {
         const apiStartDate = Helper.getDateBefore(CFG.def.maxShownDays + 7);
@@ -2837,14 +2837,14 @@ class RkiService /*implements RkiServiceInterface*/ {
         urlToday += `&groupByFieldsForStatistics=MeldeDatum`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`;
         const hist = await this.getCases(urlToday, urlHistory);
-        return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, -1 * new Date().getTimezoneOffset(), 0, 0));
+        return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
     }
     async casesState(id) {
         const apiStartDate = Helper.getDateBefore(CFG.def.maxShownDays + 7);
         const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,%20-1)+AND+IdBundesland=${id}&objectIds=&time=&resultType=standard&outFields=&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22,%22onStatisticField%22%3A%22AnzahlFall%22,%22outStatisticFieldName%22%3A%22cases%22%7D%5D&having=&resultOffset=&resultRecordCount=&sqlFormat=none&token=`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdBundesland=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`;
         const hist = await this.getCases(urlToday, urlHistory);
-        return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, -1 * new Date().getTimezoneOffset(), 0, 0));
+        return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
     }
     async getCases(urlToday, urlHistory) {
         const keyCases = 'MeldeDatum';
