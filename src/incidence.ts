@@ -1737,8 +1737,11 @@ class IncidenceListWidget extends CustomListWidget {
 }
 
 type IncidenceValue = IncidenceGraphData & {
-    date: number;
-    date_str: string;
+    date: Date;
+}
+
+type IncidenceValueStored = IncidenceGraphData & {
+    date: string;
 }
 
 class UI {
@@ -2087,7 +2090,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
     }
 
     static isIncidenceValue(value: Record<string, any>): value is IncidenceValue {
-        return value.date && !isNaN(value.date) && value.date_str
+        return value.date !== undefined && value.date instanceof Date && !isNaN(value.date.getTime());
     }
 
     static isIncidenceValueArray(array: any[]): array is IncidenceValue[] {
@@ -2099,21 +2102,39 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return true;
     }
 
-    static async loadFromCache<T extends MetaData>(id: string, typeCheck: (data: IncidenceData<T>) => data is IncidenceData<T>, ...params: any): Promise<DataResponse<IncidenceData<T>> | EmptyResponse> {
+    static async loadFromCache<T extends MetaData>(id: string, typeCheckMeta: (meta: any) => meta is T, ...params: any): Promise<DataResponse<IncidenceData<T>> | EmptyResponse> {
         const resp = await cfm.read(cfm.filestub + id, FileType.JSON_DICT);
         if (resp.status !== DataStatus.OK || resp.isEmpty()) {
             return resp as EmptyResponse;
         }
-        const incidenceData = IncidenceData.fromObject<T>(resp.data, ...params);
 
-        if (!typeCheck(incidenceData)) {
-            return DataResponse.error('Data loaded is of wrong type');
+        const {id: idLoaded, data, meta} = resp.data;
+
+        if (typeof idLoaded !== "string") {
+            return DataResponse.error(`Id of stored data is not a string. (${typeof idLoaded})`);
         }
-        if (!IncidenceData.isIncidenceValueArray(incidenceData.data)) {
-            return DataResponse.error('Data loaded has no IncidenceValues as Data');
+
+        if (id !== idLoaded) {
+            return DataResponse.error(`Ids do not match. target: ${id}, loaded: ${idLoaded}`);
         }
+
+        if (!Array.isArray(data)) {
+            return DataResponse.error(`Stored Incidence data is not an array. (${typeof data})'`);
+        }
+
+        if (!IncidenceData.isStoredIncidenceValueArray(data)) {
+            return DataResponse.error(`Stored Incidence data is not of type 'IncidenceDataStored[]'`);
+        }
+
+        if (!typeCheckMeta(meta)) {
+            return DataResponse.error(`Stored meta data is of wrong type.`);
+        }
+
+        const incidenceData = new IncidenceData<T>(idLoaded, data.map(elem => {
+            return {...elem, date: new Date(elem.date)}
+        }), meta, ...params)
+
         return DataResponse.ok(incidenceData);
-
     }
 
     static async loadAreaFromCache(loc: CustomLocation): Promise<DataResponse<IncidenceData<MetaArea>> | EmptyResponse> {
@@ -2124,15 +2145,15 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
         const id = respId.data;
 
-        return await IncidenceData.loadFromCache<MetaArea>(id, IncidenceData.isArea, loc);
+        return await IncidenceData.loadFromCache<MetaArea>(id, IncidenceData.isMetaArea, loc);
     }
 
     static async loadStateFromCache(id: string): Promise<DataResponse<IncidenceData<MetaState>> | EmptyResponse> {
-        return IncidenceData.loadFromCache<MetaState>(id, IncidenceData.isState);
+        return IncidenceData.loadFromCache<MetaState>(id, IncidenceData.isMetaState);
     }
 
     static async loadCountryFromCache(id: string): Promise<DataResponse<IncidenceData<MetaCountry>> | EmptyResponse> {
-        return IncidenceData.loadFromCache<MetaCountry>(id, IncidenceData.isCountry);
+        return IncidenceData.loadFromCache<MetaCountry>(id, IncidenceData.isMetaCountry);
     }
 
 
@@ -2141,7 +2162,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
             throw Error('completeHistory: data is not an array');
         }
 
-        data = data.sort((a, b) => a.date - b.date);
+        data = data.sort((a, b) => a.date.getTime() - b.date.getTime());
 
         const lastDate = new Date(last ?? data[data.length - 1].date);
         //console.log(`completeHistory: lastDate: ${lastDate}`);
@@ -2164,18 +2185,18 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
                 if (new Date(value.date).getDate() === currentDate.getDate()) {
                     //console.log(`completeHistory: use values from data. i: ${i}, date: ${currentDate}`)
-                    completed.push({...value, date: currentDate.getTime(), date_str: Format.dateStr(currentDate)});
+                    completed.push({...value, date: currentDate});
                     i++;
                     currentDate.setDate(currentDate.getDate() + 1);
                 } else {
                     console.log(`completeHistory: fill missing value. i: ${i} date: ${currentDate}, value.date: ${new Date(value.date)}`);
-                    completed.push({date: currentDate.getTime(), date_str: Format.dateStr(currentDate)});
+                    completed.push({date: currentDate});
                     currentDate.setDate(currentDate.getDate() + 1);
 
                 }
             } else {
                 console.log(`completeHistory: fill missing value, no data left. i: ${i}, date: ${currentDate}`);
-                completed.push({date: currentDate.getTime(), date_str: Format.dateStr(currentDate)});
+                completed.push({date: currentDate});
                 currentDate.setDate(currentDate.getDate() + 1);
             }
         }
@@ -2429,7 +2450,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
             const lastModified = cfm.modificationDate(cachedData.storageFileName);
             cachedAge = Date.now() - (lastModified ?? new Date()).getTime();
         } else {
-            console.log('Loading from cache failed.');
+            console.warn(`Loading from cache failed. empty: ${cached.isEmpty()}, status: ${cached.status}, msg: ${cached.msg}`);
         }
         return {cachedData, cachedAge};
     }
@@ -2462,6 +2483,27 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         return Helper.keysAreDefined(meta, keys, 'MetaArea');
     }
 
+    static isStoredIncidenceValue(value: any): value is IncidenceValueStored {
+        const {date, cases, incidence} = value;
+
+        for (const x of [cases, incidence]) {
+            if (x !== undefined && isNaN(x)) {
+                return false;
+            }
+        }
+        return !isNaN(new Date(date).getTime());
+    }
+
+    static isStoredIncidenceValueArray(array: any[]): array is IncidenceValueStored[] {
+        for (let i = 0; i < array.length; i++){
+            const arrayElement = array[i];
+            if(!IncidenceData.isStoredIncidenceValue(arrayElement)){
+                console.warn(`Element at ${i} not of type 'StoredIncidenceValue'.`);
+                return false;
+            }
+        }
+        return true;
+    }
 
 }
 
@@ -3532,6 +3574,7 @@ class RkiService /*implements RkiServiceInterface*/ {
         const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,-1)%20AND%20IdLandkreis%3D${id}&objectIds&time&resultType=standard&outFields&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields&groupByFieldsForStatistics&outStatistics=%5B%7B%22statisticType%22:%22sum%22,%22onStatisticField%22:%22AnzahlFall%22,%22outStatisticFieldName%22:%22cases%22%7D,%20%7B%22statisticType%22:%22max%22,%22onStatisticField%22:%22MeldeDatum%22,%22outStatisticFieldName%22:%22date%22%7D%5D&having&resultOffset&resultRecordCount&sqlFormat=none&token`
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdLandkreis=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`
         const hist = await this.getCases(urlToday, urlHistory);
+        console.log(hist);
         return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
     }
 
@@ -3575,8 +3618,7 @@ class RkiService /*implements RkiServiceInterface*/ {
                 if (isNaN(lastDateToday)) lastDateToday = new Date().setHours(0, 0, 0, 0);
                 dataToday = {
                     cases: todayCases,
-                    date: lastDateToday,
-                    date_str: Format.dateStr(lastDateToday),
+                    date: new Date(lastDateToday),
                 }
             } else {
                 console.warn(`Unexpected response format for resToday. \nurl: ${urlToday}\nreply:${JSON.stringify(resToday)})`);
@@ -3591,8 +3633,7 @@ class RkiService /*implements RkiServiceInterface*/ {
                     const date = day.attributes[keyCases];
                     return {
                         cases: day.attributes.cases,
-                        date: date,
-                        date_str: Format.dateStr(date)
+                        date: new Date(date),
                     };
                 });
                 const lastDateHistory = Math.max(...resHistory.data.features.map(a => a.attributes[keyCases]));
@@ -3607,8 +3648,7 @@ class RkiService /*implements RkiServiceInterface*/ {
 
                 dataToday = {
                     cases: todayCases,
-                    date: lastDate,
-                    date_str: Format.dateStr(lastDate),
+                    date: new Date(lastDate),
                 }
             } else {
                 console.warn(`Unexpected response format for resHistory. \nurl: ${urlHistory}\nreply:${JSON.stringify(resHistory)})`);
@@ -3616,7 +3656,7 @@ class RkiService /*implements RkiServiceInterface*/ {
         }
 
         const data: IncidenceValue[] = dataToday !== undefined ? [...dataHist, dataToday] : dataHist;
-        data.sort((a, b) => a.date - b.date);
+        data.sort((a, b) => a.date.getTime() - b.date.getTime());
         return data;
     }
 
