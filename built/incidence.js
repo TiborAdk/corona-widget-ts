@@ -709,8 +709,8 @@ class IncidenceVaccineRowStackBase extends IncidenceRowStackBase {
     }
     setVaccineData(data) {
         this.vaccineIconText.text = '💉';
-        this.setVaccinated(data.vaccinated);
-        this.setVaccineQuote(data.quote);
+        this.setVaccinated(data.fullyVaccinated.doses);
+        this.setVaccineQuote(data.fullyVaccinated.quote);
         //this.setVaccineQuote2nd(data.second_vaccination.quote);
     }
     setData(data, incidenceTrend, minmax) {
@@ -1714,10 +1714,10 @@ class IncidenceData extends CustomData {
             const sumCasesLast7Days = theDays.reduce((a, b) => a + (b.cases ?? 0), 0);
             reversedData[i].incidence = (sumCasesLast7Days / dataObject.meta.EWZ) * 100000;
         }
-        const data = dataObject;
-        if (disableLive && data.meta.cases7_per_100k) {
+        const meta = dataObject.meta;
+        if (disableLive && meta.cases7_per_100k) {
             console.log('calcIncidence: using meta.cases7_per_100k');
-            reversedData[0].incidence = data.meta.cases7_per_100k;
+            reversedData[0].incidence = meta.cases7_per_100k;
         }
         else {
             console.log('calcIncidence: using calculated incidence');
@@ -1731,27 +1731,30 @@ class IncidenceData extends CustomData {
             return new DataResponse(cached);
         }
         const data = await api.vaccineData();
-        if (typeof data === 'boolean') {
+        if (!data) {
             return DataResponse.error();
         }
-        const vaccine = name ? data.states[name] : data;
+        const { lastUpdate } = data;
+        if (lastUpdate === undefined) {
+            console.warn(`loadVaccine: 'lastUpdate' is not defined.`);
+        }
+        const matches = data.data.filter(elem => elem.name === (name ?? 'Deutschland'));
+        if (matches.length !== 1) {
+            return DataResponse.error(`loadVaccine: Multiple matches or no match for '${name ?? 'Deutschland'}'. (${matches.length})`);
+        }
+        const vaccine = matches[0];
         if (!vaccine) {
-            return DataResponse.notFound(`Name not found in vaccine data. (${name})`);
+            return DataResponse.notFound(`loadVaccine: Name not found in vaccine data. (${name})`);
         }
         if (!RkiService.isApiVaccineData(vaccine)) {
-            return DataResponse.error('Obtained data is no Vaccine Data');
+            return DataResponse.error('loadVaccine: Obtained data is no VaccineData');
         }
+        const { fullyVaccinated, vaccinatedAtLeastOnce } = vaccine;
         const vaccineData = {
-            difference: vaccine.difference_to_the_previous_day,
-            lastUpdated: data.lastUpdate,
-            quote: vaccine.quote,
-            second_vaccination: {
-                difference: vaccine["2nd_vaccination"].difference_to_the_previous_day,
-                vaccinated: vaccine["2nd_vaccination"].vaccinated,
-                quote: vaccine["2nd_vaccination"].quote,
-            },
-            vaccinated: vaccine.vaccinated,
-            vaccinations_per_1k: vaccine.vaccinations_per_1000_inhabitants,
+            lastUpdate,
+            name: vaccine.name,
+            fullyVaccinated,
+            vaccinatedAtLeastOnce,
         };
         ENV.cacheVaccines.set(name ?? 'GER', vaccineData);
         return new DataResponse(vaccineData);
@@ -1766,6 +1769,9 @@ class IncidenceData extends CustomData {
         const { cachedData, cachedAge } = await IncidenceData.loadCached(code, IncidenceData.loadCountryFromCache);
         if (cachedData && cachedAge && cachedAge < cacheMaxAge * 3600) {
             console.log(`${logPre}: using cached data`);
+            if (!RkiService.isApiVaccineData(cachedData.meta.vaccine)) {
+                cachedData.meta.vaccine = undefined;
+            }
             return DataResponse.ok(cachedData);
         }
         else {
@@ -1871,6 +1877,9 @@ class IncidenceData extends CustomData {
         const logPre = `state ${id}`;
         const { cachedData, cachedAge } = await this.loadCached(id, IncidenceData.loadStateFromCache);
         if (cachedData && cachedAge && cachedAge < cacheMaxAge * 1000) {
+            if (!RkiService.isApiVaccineData(cachedData.meta.vaccine)) {
+                cachedData.meta.vaccine = undefined;
+            }
             console.log(`${logPre}: using cached data`);
             return new DataResponse(cachedData);
         }
@@ -1936,16 +1945,86 @@ class IncidenceData extends CustomData {
     static isArea(data) {
         return IncidenceData.isMetaArea(data.meta);
     }
+    static isVaccinatedData(data, fn) {
+        if (data === undefined) {
+            console.warn(`isVaccinatedData: data is not defined`);
+            return false;
+        }
+        if (typeof data !== 'object' || data === null) {
+            console.warn(`isVaccinatedData: data not an object or null. (${typeof data}, ${data}).`);
+            return false;
+        }
+        const keysNumber = ['doses', 'quote', 'differenceToThePreviousDay'];
+        if (!Helper.keysAreDefined(data, keysNumber, 'VaccinatedData')) {
+            console.warn(`isVaccinatedData: required key is missing.`);
+            return false;
+        }
+        const vaccine = data['vaccine'];
+        if (!Array.isArray(vaccine)) {
+            console.warn(`isVaccinatedData: data.vaccine not an array`);
+            return false;
+        }
+        return vaccine.reduce((acc, elem) => acc && fn(elem));
+    }
+    static isVaccineData(data) {
+        if (data === undefined) {
+            console.warn(`isVaccineData: data is not defined.`);
+            return false;
+        }
+        if (typeof data !== 'object' || data === null) {
+            console.warn(`isVaccineData: data not an object or null. (${typeof data}, ${data}).`);
+            return false;
+        }
+        const keys = ['name', 'vaccinatedAtLeastOnce', 'fullyVaccinated'];
+        if (!Helper.keysAreDefined(data, keys, 'ApiVaccineData')) {
+            console.warn(`isVaccineData: required key is missing.`);
+            return false;
+        }
+        if (!IncidenceData.isVaccinatedData(data['vaccinatedAtLeastOnce'], RkiService.isApiVaccinatedAtLeastOnce)) {
+            console.warn(`isVaccineData: data.vaccinatedAtLeastOnce not of type 'VaccinatedAtLeastOnce'`);
+            return false;
+        }
+        if (!IncidenceData.isVaccinatedData(data['fullyVaccinated'], RkiService.isApiVaccineFullyVaccinated)) {
+            console.warn(`isVaccineData: data.fullyVaccinated not of type 'VaccinatedAtLeastOnce'`);
+            return false;
+        }
+        return true;
+    }
     static isMetaState(meta) {
-        const keys = ['BL_ID', 'BL', 'EWZ'];
+        const keys = ['BL_ID', 'BL', 'name'];
+        const keysNumber = ['EWZ'];
+        if (!Helper.keysNumberAreDefined(meta, keysNumber)) {
+            console.warn(`isMetaState: meta not of type 'MetaState'.`);
+            return false;
+        }
+        if (meta['vaccine'] !== undefined && !IncidenceData.isVaccineData(meta['vaccine'])) {
+            console.warn(`isMetaState: meta.vaccine not of type 'VaccineData'.`);
+            return false;
+        }
         return Helper.keysAreDefined(meta, keys, 'MetaState');
     }
     static isMetaCountry(meta) {
-        const keys = ['r', 'EWZ'];
+        const keys = ['r'];
+        const keysNumber = ['EWZ'];
+        if (!Helper.keysNumberAreDefined(meta, keysNumber)) {
+            console.warn(`isMetaCountry: meta not of type 'MetaCountry'.`);
+            return false;
+        }
+        if (meta['vaccine'] !== undefined && !IncidenceData.isVaccineData(meta['vaccine'])) {
+            console.warn(`isMetaCountry: meta.vaccine not of type 'VaccineData'.`);
+            return false;
+        }
+        // todo check type of r
         return Helper.keysAreDefined(meta, keys, 'MetaCountry');
     }
     static isMetaArea(meta) {
-        const keys = ['name', 'RS', 'IBZ', 'cases', 'cases_per_100k', 'EWZ', 'last_update', 'BL', 'BL_ID', 'EWZ_BL', 'cases7_bl_per_100k'];
+        const keys = ['name', 'RS', 'last_update', 'BL', 'BL_ID'];
+        const keysNumber = ['EWZ', 'IBZ', 'cases', 'cases_per_100k', 'EWZ_BL', 'cases7_bl_per_100k'];
+        const keysNumberOptional = ['cases7_per_100k'];
+        if (!Helper.keysNumberAreDefined(meta, keysNumber, keysNumberOptional)) {
+            console.warn(`isMetaArea: meta not of type 'MetaArea'.`);
+            return false;
+        }
         return Helper.keysAreDefined(meta, keys, 'MetaArea');
     }
     static isStoredIncidenceValue(value) {
@@ -2531,10 +2610,41 @@ class Helper {
         return offsetDate.toISOString().split('T').shift();
     }
     static keysAreDefined(object, keys, name, log = true) {
+        if (typeof object !== 'object' || object === null) {
+            if (log)
+                console.warn(`keysAreDefined: object is not an object or null. (${typeof object}, ${object})`);
+            return false;
+        }
         for (const key of keys) {
             if (object[key] === undefined) {
                 if (log)
-                    console.warn(`Object is not of type '${name}'. Key '${key}' is missing.`);
+                    console.warn(`keysAreDefined: Object is not of type '${name}'. Key '${key}' is missing.`);
+                return false;
+            }
+        }
+        return true;
+    }
+    static keysNumberAreDefined(object, keys, keysOptional = [], log = true) {
+        if (typeof object !== 'object' || object === null) {
+            if (log)
+                console.warn(`keysNumberAreDefined: object is not an object or null. (${typeof object}, ${object})`);
+            return false;
+        }
+        for (const keyOptional of keysOptional) {
+            if (object[keyOptional] !== undefined) {
+                keys.push(keyOptional);
+            }
+        }
+        for (const key of keys) {
+            const value = object[key];
+            if (value === undefined) {
+                if (log)
+                    console.warn(`keysNumberAreDefined: required key '${key}' is not defined!`);
+                return false;
+            }
+            if (!Number.isFinite(value)) {
+                if (log)
+                    console.warn(`keysNumberAreDefined: key '${key}' is not a number. (${typeof value}, ${value})!`);
                 return false;
             }
         }
@@ -2860,7 +2970,6 @@ class RkiService /*implements RkiServiceInterface*/ {
         const urlToday = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%20IN(1,-1)%20AND%20IdLandkreis%3D${id}&objectIds&time&resultType=standard&outFields&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields&groupByFieldsForStatistics&outStatistics=%5B%7B%22statisticType%22:%22sum%22,%22onStatisticField%22:%22AnzahlFall%22,%22outStatisticFieldName%22:%22cases%22%7D,%20%7B%22statisticType%22:%22max%22,%22onStatisticField%22:%22MeldeDatum%22,%22outStatisticFieldName%22:%22date%22%7D%5D&having&resultOffset&resultRecordCount&sqlFormat=none&token`;
         const urlHistory = `https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=NeuerFall+IN%281%2C0%29+AND+IdLandkreis=${id}+AND+MeldeDatum+%3E%3D+TIMESTAMP+%27${apiStartDate}%27&objectIds=&time=&resultType=standard&outFields=AnzahlFall%2CMeldeDatum&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=MeldeDatum&groupByFieldsForStatistics=MeldeDatum&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22cases%22%7D%5D%0D%0A&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=pjson&token=`;
         const hist = await this.getCases(urlToday, urlHistory);
-        console.log(hist);
         return typeof hist === 'boolean' ? hist : IncidenceData.completeHistory(hist, CFG.def.maxShownDays + 7, new Date().setHours(0, 0, 0, 0));
     }
     async casesGer() {
@@ -2962,10 +3071,25 @@ class RkiService /*implements RkiServiceInterface*/ {
         }
     }
     async vaccineData() {
-        const url = `https://rki-vaccination-data.vercel.app/api`;
+        const url = `https://rki-vaccination-data.vercel.app/api/v2`;
         const response = await this.execCached(url, RequestType.JSON);
         if (response.status === DataStatus.OK && !response.isEmpty()) {
-            return (response.data.states) ? response.data : false;
+            const { lastUpdate, data: vaccineData } = response.data;
+            if (lastUpdate === undefined) {
+                console.warn(`vaccineData: Unexpected response, 'lastUpdate' is not defined!`);
+            }
+            if (vaccineData === undefined) {
+                console.warn(`vaccineData: Unexpected response, 'data' is not defined!`);
+                console.log(response.data);
+                return false;
+            }
+            if (!Array.isArray(vaccineData)) {
+                console.warn(`vaccineData: Unexpected response, 'data' is no array!`);
+                console.log(vaccineData);
+                console.log(response.data);
+                return false;
+            }
+            return { lastUpdate, data: vaccineData };
         }
         else {
             console.warn(`Unexpected response format. \nurl: ${url}\nreply:${JSON.stringify(response.data)})`);
@@ -2983,16 +3107,109 @@ class RkiService /*implements RkiServiceInterface*/ {
         }
     }
     static isApiMetaArea(meta) {
-        const keys = ['BL', 'BL_ID', 'cases', 'cases7_bl_per_100k', 'cases_per_100k', 'EWZ', 'EWZ_BL', 'GEN', 'last_update', 'IBZ', 'RS'];
-        return Helper.keysAreDefined(meta, keys, 'ApiMetaArea');
+        const keysNumber = ['IBZ', 'cases', 'cases_per_100k', 'EWZ', 'EWZ_BL', 'cases7_bl_per_100k'];
+        const keysNumberOptional = ['cases7_per_100k'];
+        const keys = ['BL', 'BL_ID', 'GEN', 'last_update', 'RS'];
+        if (!Helper.keysAreDefined(meta, keys, 'ApiMetaArea')) {
+            console.warn(`isApiMetaArea: data is not of type 'ApiMetaArea', required key does not exist.`);
+            return false;
+        }
+        if (!Helper.keysNumberAreDefined(meta, keysNumber, keysNumberOptional)) {
+            console.warn(`isApiMetaArea: data is not of type 'ApiMetaArea', required key does not exist or is of wrong type.`);
+            return false;
+        }
+        return true;
+    }
+    static isApiVaccinatedAtLeastOnce(data) {
+        if (typeof data !== "object" || data === null) {
+            console.warn(`isApiVaccinatedAtLeastOnce: data is not an object or null. (${typeof data}, ${data})`);
+            return false;
+        }
+        const name = data['name'];
+        if (!["biontech", "moderna", "astrazeneca", "janssen"].includes(name)) {
+            console.warn(`isApiVaccinatedAtLeastOnce: data not of type 'ApiVaccinatedAtLeastOnce', wrong value for 'name'. (${name})`);
+            return false;
+        }
+        const doses = data['doses'];
+        if (doses === undefined || !Number.isFinite(doses)) {
+            console.warn(`isApiVaccinatedAtLeastOnce: data not of type 'ApiVaccinatedAtLeastOnce', wrong value for 'doses'. (${doses})`);
+            return false;
+        }
+        return true;
+    }
+    static isApiVaccineFullyVaccinated(data) {
+        if (typeof data !== "object" || data === null) {
+            console.warn(`isApiVaccineFullyVaccinated: data not an object or null. (${typeof data}, ${data})`);
+            return false;
+        }
+        const name = data['name'];
+        if (!["biontech", "moderna", "astrazeneca", "janssen"].includes(name)) {
+            console.warn(`isApiVaccineFullyVaccinated: data not of type 'ApiVaccineFullyVaccinated', wrong value for 'name'. (${name})`);
+            return false;
+        }
+        const keysNumber = ['firstDoses', 'totalDoses'];
+        if (!Helper.keysAreDefined(data, keysNumber, 'ApiVaccineFullyVaccinated')) {
+            return false;
+        }
+        const keysNumberOptional = ['secondDoses'];
+        for (const key of keysNumberOptional) {
+            if (data[key] !== undefined) {
+                keysNumber.push(key);
+            }
+        }
+        for (const key of keysNumber) {
+            if (!Number.isFinite(data[key])) {
+                console.warn(`isApiVaccineFullyVaccinated: data not of type 'ApiVaccineFullyVaccinated', value for '${key}' is NaN. (${data[key]})`);
+                return false;
+            }
+        }
+        return true;
     }
     static isApiVaccineData(data) {
-        const keys = ['2nd_vaccination', 'vaccinations_per_1000_inhabitants', 'quote'];
-        return RkiService.isApiVaccinated(data) && Helper.keysAreDefined(data, keys, 'ApiVaccineData') && RkiService.isApiVaccinated(data['2nd_vaccination']);
+        if (data === undefined) {
+            console.warn(`isApiVaccineData: data not of type 'ApiVaccineData', data is undefined.`);
+            return false;
+        }
+        if (typeof data !== 'object' || data === null) {
+            console.warn(`isApiVaccineData: data not an object or null. (${typeof data}, ${data})`);
+            return false;
+        }
+        const keys = ['name', 'inhabitants', 'isState', 'rs', 'vaccinatedAtLeastOnce', 'fullyVaccinated'];
+        if (!Helper.keysAreDefined(data, keys, 'ApiVaccineData')) {
+            return false;
+        }
+        if (!RkiService.isApiVaccinatedData(data['vaccinatedAtLeastOnce'], RkiService.isApiVaccinatedAtLeastOnce)) {
+            console.warn(`isApiVaccineData: data not of type 'ApiVaccineData', 'data.vaccinatedAtLeastOnce' is not of type 'ApiVaccinatedAtLeastOnce'`);
+            return false;
+        }
+        if (!RkiService.isApiVaccinatedData(data['fullyVaccinated'], RkiService.isApiVaccineFullyVaccinated)) {
+            console.warn(`isApiVaccineData: data not of type 'ApiVaccineData', 'data.fullyVaccinated' is not of type 'ApiVaccineFullyVaccinated'`);
+            return false;
+        }
+        return true;
     }
-    static isApiVaccinated(data) {
-        const keys = ['vaccinated', 'difference_to_the_previous_day'];
-        return Helper.keysAreDefined(data, keys, 'ApiVaccinated');
+    static isApiVaccinatedData(data, fn) {
+        if (typeof data !== 'object' || data === null) {
+            console.warn(`isApiVaccinated: data is not an object or null. (${typeof data}, ${data})`);
+            return false;
+        }
+        const keysNumber = ['doses', 'quote', 'differenceToThePreviousDay'];
+        const keys = [...keysNumber, 'vaccine'];
+        if (!Helper.keysAreDefined(data, keys, 'ApiVaccinated')) {
+            return false;
+        }
+        for (const keyNumber of keysNumber) {
+            if (!Number.isFinite(data[keyNumber])) {
+                console.warn(`isApiVaccinated: 'data.${keyNumber}' is NaN. (${data[keyNumber]})`);
+                return false;
+            }
+        }
+        const vaccine = data['vaccine'];
+        if (!Array.isArray(vaccine)) {
+            console.warn(`isApiVaccinated: data not of type 'ApiVaccinated', 'data.vaccine' is not an array.`);
+            return false;
+        }
+        return vaccine.reduce((acc, elem) => acc && fn(elem));
     }
 }
 console.log(`Version: ${VERSION}`);

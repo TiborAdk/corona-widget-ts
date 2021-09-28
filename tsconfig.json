@@ -11,7 +11,9 @@
   "include": [
     "./src/incidence.ts",
     "src/Config.d.ts",
-    "src/WidgetConfig.d.ts"
+    "src/WidgetConfig.d.ts",
+    "src/RkiService.d.ts",
+    "src/VaccineData.d.ts"
   ],
   "exclude": [
     "./node_modules"
