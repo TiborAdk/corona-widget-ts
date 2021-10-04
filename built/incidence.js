@@ -3,7 +3,7 @@
 // icon-color: red; icon-glyph: briefcase-medical;
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 const CFG = {
-    version: '1.7',
+    version: '1.7.1',
     autoUpdate: true,
     autoUpdateInterval: 1,
     geoCacheAccuracy: 1,
@@ -22,7 +22,7 @@ const CFG = {
     },
     widgets: {},
 };
-const VERSION = '1.7';
+const VERSION = '1.7.1';
 const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
 const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
 const DIR_DEV = 'corona_widget_dev';
@@ -1689,7 +1689,7 @@ class IncidenceData extends CustomData {
                 }
                 if (new Date(value.date).getDate() === currentDate.getDate()) {
                     //console.log(`completeHistory: use values from data. i: ${i}, date: ${currentDate}`)
-                    completed.push({ ...value, date: currentDate });
+                    completed.push({ ...value, date: new Date(currentDate) });
                     i++;
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
