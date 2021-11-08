@@ -6,7 +6,6 @@
     "sourceMap": true,
     "outDir": "./built",
     "strictNullChecks": true,
-    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "./src/incidence.ts",
