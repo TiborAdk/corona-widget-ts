@@ -5,7 +5,8 @@
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 
 const CFG: Config = {
-    version: '1.7.1',
+    config: "1.2",
+    version: '1.8',
     autoUpdate: true, // whether the script should update it self
     autoUpdateInterval: 1, // how often the script should update it self (in days)
     geoCacheAccuracy: 1, // accuracy the gps staticCoords are cached with (0: 111 Km; 1: 11,1 Km; 2: 1,11 Km; 3: 111 m; 4: 11,1 m)
@@ -30,7 +31,7 @@ const CFG: Config = {
     widgets: {},
 }
 
-const VERSION = '1.7.1';
+const VERSION = '1.8';
 const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
 const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
 const DIR_DEV = 'corona_widget_dev';
@@ -2168,7 +2169,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
                 }
             } else {
                 console.log(`completeHistory: fill missing value, no data left. i: ${i}, date: ${currentDate}`);
-                completed.push({date: currentDate});
+                completed.push({date: new Date(currentDate)});
                 currentDate.setDate(currentDate.getDate() + 1);
             }
         }

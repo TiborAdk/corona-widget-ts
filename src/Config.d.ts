@@ -1,4 +1,5 @@
 type Config = {
+    config: string, // version of the config
     version: string, // version of the script
     autoUpdate: boolean // script is updated automatically
     autoUpdateInterval: number, // timeframe the script trys to update it self (in days)
