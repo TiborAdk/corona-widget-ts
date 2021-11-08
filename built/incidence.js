@@ -1682,12 +1682,11 @@ class IncidenceData extends CustomData {
         let i = 0;
         while (currentDate <= lastDate) {
             if (i < data.length) {
-                const value = data[i];
-                if (currentDate.getDate() > new Date(value.date).getDate()) {
-                    console.log(`completeHistory: skipp old value. date: ${currentDate} > value.date ${new Date(value.date)}`);
+                while (i < data.length - 1 && new Date(data[i].date).getDate() < currentDate.getDate()) {
+                    console.log(`completeHistory: skipp old value. date: ${currentDate} > value.date ${data[i].date}`);
                     i++;
-                    continue;
                 }
+                const value = data[i];
                 if (new Date(value.date).getDate() === currentDate.getDate()) {
                     //console.log(`completeHistory: use values from data. i: ${i}, date: ${currentDate}`)
                     completed.push({ ...value, date: new Date(currentDate) });
@@ -1695,8 +1694,8 @@ class IncidenceData extends CustomData {
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
                 else {
-                    console.log(`completeHistory: fill missing value. i: ${i} date: ${currentDate}, value.date: ${new Date(value.date)}`);
-                    completed.push({ date: currentDate });
+                    console.log(`completeHistory: fill missing value. i: ${i} date: ${currentDate}, value.date: ${value.date}`);
+                    completed.push({ date: new Date(currentDate) });
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
             }
