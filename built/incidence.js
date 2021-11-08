@@ -3,7 +3,7 @@
 // icon-color: red; icon-glyph: briefcase-medical;
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 const CFG = {
-    config: "1.2",
+    config: "1.3",
     version: '1.8',
     autoUpdate: true,
     autoUpdateInterval: 1,
@@ -2680,7 +2680,7 @@ class Helper {
             }
         }
     }
-    static async migrateConfig(path = 'config.json', target) {
+    static migrateConfigTo1_2_0(old) {
         function helper(src, target, keys) {
             if (!src)
                 return target;
@@ -2691,23 +2691,10 @@ class Helper {
             }
             return target;
         }
-        if (!cfm.fileExists(path)) {
-            return;
-        }
-        const resp = await cfm.read(path, FileType.JSON_DICT);
-        if (!(resp.status === DataStatus.OK && !resp.isEmpty())) {
-            console.log('config already migrated');
-            return;
-        }
-        const old = resp.data;
         let migrated = {
             version: '1.2.0',
             def: {}
         };
-        if (old.version && old.version === migrated.version) {
-            console.log('config already migrated');
-            return;
-        }
         migrated = helper(old.script, migrated, [['autoUpdate'], ['autoUpdateInterval']]);
         migrated = helper(old.api, migrated, [['csvRvalueField']]);
         migrated = helper(old.geoCache, migrated, [['accuracy', 'geoCacheAccuracy']]);
@@ -2717,6 +2704,56 @@ class Helper {
         migrated.def = helper(old.state, migrated.def, [['useShortName', 'stateUseShorName']]);
         migrated.def = helper(old.incidence, migrated.def, [['disableLive', 'incidenceDisableLive']]);
         migrated.def = helper(old.vaccine, migrated.def, [['show', 'showVaccine']]);
+        return migrated;
+    }
+    static migrateConfig1_2_0To1_3(old) {
+        console.log('Migrating config from 1.2.0 to 1.3');
+        old.version = undefined;
+        return { config: "1.3", ...old };
+    }
+    static migrateConfigToNewest(old, from) {
+        console.log(`Migrating from ${from} to latest`);
+        switch (from) {
+            case "0":
+                old = Helper.migrateConfigTo1_2_0(old);
+            // fallthrough
+            case "1.2.0":
+                old = Helper.migrateConfig1_2_0To1_3(old);
+            // fallthrough
+            case "1.3":
+                return old;
+            default:
+                return {
+                    config: "1.3",
+                    def: {}
+                };
+        }
+    }
+    static async migrateConfig(path = 'config.json', target) {
+        if (!cfm.fileExists(path)) {
+            return;
+        }
+        const resp = await cfm.read(path, FileType.JSON_DICT);
+        if (!(resp.status === DataStatus.OK && !resp.isEmpty())) {
+            console.log('config already migrated');
+            return;
+        }
+        const old = resp.data;
+        if (old.config === CFG.config) {
+            console.log('config already migrated');
+            return;
+        }
+        let version_old = "";
+        if (!old.config && !old.version) {
+            version_old = "0";
+        }
+        else if (!old.config && old.version) {
+            version_old = old.version;
+        }
+        else if (old.config) {
+            version_old = old.config;
+        }
+        const migrated = Helper.migrateConfigToNewest(old, version_old);
         cfm.write(migrated, target ?? path, FileType.JSON);
     }
     static async loadConfig(path = 'config.json', path_default = '.default.json') {
