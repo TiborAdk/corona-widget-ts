@@ -1682,7 +1682,7 @@ class IncidenceData extends CustomData {
         let i = 0;
         while (currentDate <= lastDate) {
             if (i < data.length) {
-                while (i < data.length - 1 && new Date(data[i].date).getDate() < currentDate.getDate()) {
+                while (i < data.length - 1 && data[i].date.getDate() < currentDate.getDate() && data[i].date.getMonth() === currentDate.getMonth()) {
                     console.log(`completeHistory: skipp old value. date: ${currentDate} > value.date ${data[i].date}`);
                     i++;
                 }
