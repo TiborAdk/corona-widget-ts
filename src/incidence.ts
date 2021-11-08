@@ -2251,7 +2251,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
 
         if (cachedData && cachedAge && cachedAge < cacheMaxAge * 3600) {
             console.log(`${logPre}: using cached data`);
-            if (!RkiService.isApiVaccineData(cachedData.meta.vaccine)) {
+            if (!IncidenceData.isVaccineData(cachedData.meta.vaccine)) {
                 cachedData.meta.vaccine = undefined;
             }
             return DataResponse.ok(cachedData);
@@ -2292,13 +2292,13 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         const location = await CustomLocation.getLocation(loc);
 
         if (location.status === LocationStatus.FAILED) {
-            console.log(`Getting location failed (${loc.latitude},${loc.longitude}). Trying to load from cache...`);
+            console.log(`loadArea: Getting location failed (${loc.latitude},${loc.longitude}). Trying to load from cache...`);
 
             const resp = await IncidenceData.loadAreaFromCache(location);
             if (resp.succeeded() && !resp.isEmpty()) {
                 return DataResponse.cached(resp.data);
             } else {
-                return DataResponse.error('Loading from cache failed.');
+                return DataResponse.error('loadArea: Loading from cache failed.');
             }
         }
 
@@ -2306,17 +2306,18 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         const {cachedData, cachedAge} = await IncidenceData.loadCached(location, IncidenceData.loadAreaFromCache);
 
         if (cachedData && cachedAge && cachedAge < cacheMaxAge * 1000) {
-            console.log('Using cached data')
+            const id = cachedData.meta.RS
+            console.log(`loadArea: Using cached data, id: ${id}`)
             return DataResponse.ok(cachedData);
         } else {
-            console.log('Cache lifetime exceeded, trying to update data...');
+            console.log('loadArea: Cache lifetime exceeded, trying to update data...');
         }
 
 
         // get information for area
         const info = await api.locationData(location);
         if (!info) {
-            const msg = `Getting meta data failed (${loc.latitude} ${loc.longitude})`;
+            const msg = `loadArea: Getting meta data failed (${loc.latitude} ${loc.longitude})`;
             if (cachedData) {
                 console.log(`${msg}, using cached data`);
                 return DataResponse.cached(cachedData);
@@ -2329,7 +2330,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         // get cases for area
         const cases = await api.casesArea(id);
         if (typeof cases === 'boolean') {
-            const msg = `Getting cases failed (${id})`;
+            const msg = `loadArea: Getting cases failed (${id})`;
             if (cachedData) {
                 console.log(`${msg}, trying to use cached data`);
                 return DataResponse.cached(cachedData);
@@ -2373,7 +2374,7 @@ class IncidenceData<T extends MetaData> extends CustomData<IncidenceValue, T> {
         const {cachedData, cachedAge} = await this.loadCached(id, IncidenceData.loadStateFromCache);
 
         if (cachedData && cachedAge && cachedAge < cacheMaxAge * 1000) {
-            if (!RkiService.isApiVaccineData(cachedData.meta.vaccine)) {
+            if (!IncidenceData.isVaccineData(cachedData.meta.vaccine)) {
                 cachedData.meta.vaccine = undefined;
             }
             console.log(`${logPre}: using cached data`)
