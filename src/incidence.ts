@@ -1063,11 +1063,10 @@ class HeaderStack extends CustomWidgetStack {
     private readonly smallIncidenceRow: SmallIncidenceRowStack;
     private readonly statusBlock: StatusBlockStack;
     private readonly rText: WidgetText;
-    private readonly shownText: WidgetText;
     private readonly dateText: WidgetText;
     private readonly isSmall: boolean;
 
-    constructor(stack: WidgetStack, size: WidgetSize, title?: string, rValue?: number, type?: string, date?: Date) {
+    constructor(stack: WidgetStack, size: WidgetSize, title?: string, rValue?: number, date?: Date) {
         super(stack, {layout: Layout.HORIZONTAL});
 
         this.isSmall = CustomListWidget.isSmall(size);
@@ -1092,15 +1091,12 @@ class HeaderStack extends CustomWidgetStack {
         this.rText = rStack.addText('', {font: CustomFont.MEDIUM});
         rStack.addSpacer(2);
 
-        const info = {font: CustomFont.XSMALL, textColor: '#777777'};
         //const infoStack = rStack.addStack({layout: Layout.VERTICAL, font: CustomFont.XSMALL, textColor: '#777777'});
-        this.shownText = rStack.addText('', info);
-        this.dateText = middleStack.addText('', info);
+        this.dateText = middleStack.addText('', {font: CustomFont.XSMALL, textColor: '#777777'});
 
 
         if (title) this.setTitle(title)
         if (rValue) this.setRValue(rValue);
-        if (type) this.setTypeText(type);
         if (date) this.setDateText(date);
     }
 
@@ -1110,10 +1106,6 @@ class HeaderStack extends CustomWidgetStack {
 
     setRValue(value: number): void {
         this.rText.text = value > 0 ? Format.number(value, 2) + 'ᴿ' : 'n/v';
-    }
-
-    setTypeText(text: string): void {
-        this.shownText.text = `RKI (${text})`;
     }
 
     setDateText(date?: Date | number): void {
@@ -1568,6 +1560,7 @@ class IncidenceListWidget extends CustomListWidget {
     private readonly header: HeaderStack;
     private readonly areaListStack: AreaListStack;
     private readonly stateList: StateListStack;
+    private readonly footer: FooterInfoStack;
     private readonly api: RkiService;
 
     constructor(api: RkiService, parameters: string, family: string, coords: CustomLocation[] = [], cfg: WidgetConfig) {
@@ -1580,19 +1573,21 @@ class IncidenceListWidget extends CustomListWidget {
 
         this.backgroundColor = Colors.BACKGROUND;
 
-        if (this.isSmall()) {
-            this.setPadding(4, 4, 4, 4);
-        } else {
-            this.setPadding(6, 6, 6, 6);
-        }
+        const footerSpacing = this.config.hideWidgetInfo ? 0 : 2;
+        const pad = this.isSmall() ? 4 : 6;
+        this.setPadding(pad, pad, pad - footerSpacing, pad);
 
         const maxShown = this.isLarge() ? 6 : this.isMedium() ? 2 : 1;
 
         this.header = this.addTopBar();
-        this.addSpacer(5);
+        this.addSpacer(3);
         this.areaListStack = this.addAreaRowsStack();
         this.addSpacer();
         this.stateList = this.addStateRowsStack();
+        if (!this.config.hideWidgetInfo) {
+            this.addSpacer(footerSpacing);
+            this.footer = new FooterInfoStack(this.addStack(), this.size);
+        }
 
     }
 
@@ -1601,7 +1596,6 @@ class IncidenceListWidget extends CustomListWidget {
     }
 
     async fillWidget(): Promise<void> {
-        this.header.setTypeText(CFG.def.graphShowIndex);
         const [respGer] = await Promise.all([IncidenceData.loadCountry(this.api, 'GER', this.config.showVaccine)]);
         if (respGer.succeeded() && !respGer.isEmpty()) {
             const dataGer = IncidenceData.calcIncidence(respGer.data, this.config.incidenceDisableLive);
@@ -1712,6 +1706,8 @@ class IncidenceListWidget extends CustomListWidget {
         // UI ===
         if (this.config.openUrlOnTap) this.url = this.config.openUrl;
         this.refreshAfterDate = new Date(Date.now() + this.config.refreshInterval * 1000);
+
+        this.setWidgetInfo(VERSION, this.config.graphShowIndex, 'RKI');
     }
 
     private addTopBar(): HeaderStack {
@@ -1746,6 +1742,12 @@ class IncidenceListWidget extends CustomListWidget {
         this.header.setRValue(country.meta.r.r);
         this.header.setDateText(country.getDay()?.date);
         if (!this.isSmall()) this.header.setCountryData(country, this.incidenceTrend);
+    }
+
+    setWidgetInfo(version?: string, graphShownData?: string, source?: string) {
+        if (version) this.footer.setVersion(version);
+        if (graphShownData) this.footer.setShownGraphData(graphShownData);
+        if (source) this.footer.setSource(source);
     }
 }
 

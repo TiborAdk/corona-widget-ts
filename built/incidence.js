@@ -793,7 +793,7 @@ class SmallIncidenceBlockStack extends IncidenceRowStackBase {
     }
 }
 class HeaderStack extends CustomWidgetStack {
-    constructor(stack, size, title, rValue, type, date) {
+    constructor(stack, size, title, rValue, date) {
         super(stack, { layout: Layout.HORIZONTAL });
         this.isSmall = CustomListWidget.isSmall(size);
         this.titleText = this.addText('', Font.mediumSystemFont(22));
@@ -815,16 +815,12 @@ class HeaderStack extends CustomWidgetStack {
         const rStack = middleStack.addStack({ layout: Layout.HORIZONTAL });
         this.rText = rStack.addText('', { font: CustomFont.MEDIUM });
         rStack.addSpacer(2);
-        const info = { font: CustomFont.XSMALL, textColor: '#777777' };
         //const infoStack = rStack.addStack({layout: Layout.VERTICAL, font: CustomFont.XSMALL, textColor: '#777777'});
-        this.shownText = rStack.addText('', info);
-        this.dateText = middleStack.addText('', info);
+        this.dateText = middleStack.addText('', { font: CustomFont.XSMALL, textColor: '#777777' });
         if (title)
             this.setTitle(title);
         if (rValue)
             this.setRValue(rValue);
-        if (type)
-            this.setTypeText(type);
         if (date)
             this.setDateText(date);
     }
@@ -833,9 +829,6 @@ class HeaderStack extends CustomWidgetStack {
     }
     setRValue(value) {
         this.rText.text = value > 0 ? Format.number(value, 2) + 'ᴿ' : 'n/v';
-    }
-    setTypeText(text) {
-        this.shownText.text = `RKI (${text})`;
     }
     setDateText(date) {
         this.dateText.text = date !== undefined ? Format.dateStr(date) + ' ' + Format.timeStr(Date.now()) : 'n/v';
@@ -1206,24 +1199,24 @@ class IncidenceListWidget extends CustomListWidget {
         if (!this.family)
             this.setSizeByParameterCount(this.locations.length);
         this.backgroundColor = Colors.BACKGROUND;
-        if (this.isSmall()) {
-            this.setPadding(4, 4, 4, 4);
-        }
-        else {
-            this.setPadding(6, 6, 6, 6);
-        }
+        const footerSpacing = this.config.hideWidgetInfo ? 0 : 2;
+        const pad = this.isSmall() ? 4 : 6;
+        this.setPadding(pad, pad, pad - footerSpacing, pad);
         const maxShown = this.isLarge() ? 6 : this.isMedium() ? 2 : 1;
         this.header = this.addTopBar();
-        this.addSpacer(5);
+        this.addSpacer(3);
         this.areaListStack = this.addAreaRowsStack();
         this.addSpacer();
         this.stateList = this.addStateRowsStack();
+        if (!this.config.hideWidgetInfo) {
+            this.addSpacer(footerSpacing);
+            this.footer = new FooterInfoStack(this.addStack(), this.size);
+        }
     }
     async setup() {
         this.incidenceTrend = this.config.graphShowIndex === "incidence" ? IncidenceTrend.DAY : IncidenceTrend.WEEK;
     }
     async fillWidget() {
-        this.header.setTypeText(CFG.def.graphShowIndex);
         const [respGer] = await Promise.all([IncidenceData.loadCountry(this.api, 'GER', this.config.showVaccine)]);
         if (respGer.succeeded() && !respGer.isEmpty()) {
             const dataGer = IncidenceData.calcIncidence(respGer.data, this.config.incidenceDisableLive);
@@ -1329,6 +1322,7 @@ class IncidenceListWidget extends CustomListWidget {
         if (this.config.openUrlOnTap)
             this.url = this.config.openUrl;
         this.refreshAfterDate = new Date(Date.now() + this.config.refreshInterval * 1000);
+        this.setWidgetInfo(VERSION, this.config.graphShowIndex, 'RKI');
     }
     addTopBar() {
         return new HeaderStack(this.addStack(), this.size, '🦠');
@@ -1356,6 +1350,14 @@ class IncidenceListWidget extends CustomListWidget {
         this.header.setDateText(country.getDay()?.date);
         if (!this.isSmall())
             this.header.setCountryData(country, this.incidenceTrend);
+    }
+    setWidgetInfo(version, graphShownData, source) {
+        if (version)
+            this.footer.setVersion(version);
+        if (graphShownData)
+            this.footer.setShownGraphData(graphShownData);
+        if (source)
+            this.footer.setSource(source);
     }
 }
 class UI {
