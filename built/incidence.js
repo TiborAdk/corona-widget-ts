@@ -19,7 +19,8 @@ const CFG = {
         openUrl: "https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4",
         alternateLarge: false,
         incidenceDisableLive: false,
-        showVaccine: true, // show the data regarding the vaccination. Small widget wont show this information.
+        showVaccine: true,
+        hideWidgetInfo: false, // hide the footer of the widget containing information about version, source and shown data
     },
     widgets: {},
 };

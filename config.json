@@ -23,6 +23,9 @@
     "alternateLarge": false,
 
     "incidenceDisableLive": false,
-    "showVaccine": true
+    "showVaccine": true,
+
+    "hideWidgetInfo": false
+
   }
 }

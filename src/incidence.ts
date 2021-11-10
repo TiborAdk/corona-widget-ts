@@ -27,6 +27,8 @@ const CFG: Config = {
 
         incidenceDisableLive: false, // use the incidence value from the api
         showVaccine: true, // show the data regarding the vaccination. Small widget wont show this information.
+
+        hideWidgetInfo: false, // hide the footer of the widget containing information about version, source and shown data
     },
     widgets: {},
 }

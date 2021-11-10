@@ -30,6 +30,8 @@ type WidgetConfig = ListWidgetConfig & {
     incidenceDisableLive: boolean,
     showVaccine: boolean, // show the data regarding the vaccination. Small widget wont show this information.
 
+    hideWidgetInfo: boolean, // hide the footer of the widget containing information about version, source and shown data
+
 }
 
 type WidgetConfigOpt = ListWidgetConfigOpt & {
@@ -44,6 +46,8 @@ type WidgetConfigOpt = ListWidgetConfigOpt & {
 
     incidenceDisableLive?: boolean,
     showVaccine?: boolean, // show the data regarding the vaccination. Small widget wont show this information.
+
+    hideWidgetInfo?: boolean, // hide the footer of the widget containing information about version, source and shown data
 
 }
 
