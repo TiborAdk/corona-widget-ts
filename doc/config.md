@@ -74,7 +74,8 @@ Es müssen nur Werte eingetragen werden, die von den [Standardwerten](../config.
         "alternateLarge": false,
         "incidenceTrend": "day",
         "incidenceDisableLive": false,
-        "showVaccine": true
+        "showVaccine": true,
+        "hideWidgetInfo": false,
     },
     ...
 ```
@@ -157,3 +158,10 @@ Aktiviert die Anzeige für die Impfdaten. Diese ist nur nicht im kleinen Widget 
 
 * `true` *(Standard)*: Zeigt Impfdaten
 * `false`: Deaktiviert
+
+## hideWidgetInfo
+
+Versteck die Allgemeinen Infos am unteren Rand des Widgets. (Version, Quelle und angezeigte Daten)
+
+* `false` *(Standard)*: Zeigt Informationen
+* `true`: Informationen werden nicht angezeigt
