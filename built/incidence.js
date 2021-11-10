@@ -856,6 +856,33 @@ class HeaderStack extends CustomWidgetStack {
         }
     }
 }
+class FooterInfoStack extends CustomWidgetStack {
+    constructor(stack, size, version, shownGraphData, source) {
+        super(stack, { layout: Layout.HORIZONTAL, font: CustomFont.XSMALL, textColor: '#777777' });
+        this.isSmall = CustomListWidget.isSmall(size);
+        this.addSpacer();
+        this.versionText = this.addText('');
+        this.addSpacer(0);
+        this.sourceText = this.addText('');
+        this.shownGraphDataText = this.addText('');
+        this.addSpacer();
+        if (version)
+            this.setVersion(version);
+        if (source)
+            this.setSource(source);
+        if (shownGraphData)
+            this.setShownGraphData(shownGraphData);
+    }
+    setVersion(version) {
+        this.versionText.text = `v${version}`;
+    }
+    setShownGraphData(text) {
+        this.shownGraphDataText.text = ` | ${text}`;
+    }
+    setSource(source) {
+        this.sourceText.text = ` | ${source}`;
+    }
+}
 class AreaIconStack extends CustomWidgetStack {
     constructor(stack, areaIBZ) {
         super(stack, {

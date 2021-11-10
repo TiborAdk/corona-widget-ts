@@ -1135,6 +1135,42 @@ class HeaderStack extends CustomWidgetStack {
     }
 }
 
+class FooterInfoStack extends CustomWidgetStack {
+    private readonly versionText: WidgetText;
+    private readonly shownGraphDataText: WidgetText;
+    private readonly sourceText: WidgetText;
+    private readonly isSmall: boolean;
+
+    constructor(stack: WidgetStack, size: WidgetSize, version?: string, shownGraphData?: string, source?: string) {
+        super(stack, {layout: Layout.HORIZONTAL, font: CustomFont.XSMALL, textColor: '#777777'});
+
+        this.isSmall = CustomListWidget.isSmall(size);
+
+        this.addSpacer();
+        this.versionText = this.addText('');
+        this.addSpacer(0);
+        this.sourceText = this.addText('');
+        this.shownGraphDataText = this.addText('');
+        this.addSpacer();
+
+        if (version) this.setVersion(version);
+        if (source) this.setSource(source);
+        if (shownGraphData) this.setShownGraphData(shownGraphData);
+    }
+
+    setVersion(version: string): void {
+        this.versionText.text = `v${version}`;
+    }
+
+    setShownGraphData(text: string): void {
+        this.shownGraphDataText.text = ` | ${text}`;
+    }
+
+    setSource(source: string) {
+        this.sourceText.text = ` | ${source}`;
+    }
+}
+
 class AreaIconStack extends CustomWidgetStack {
     private readonly iconText: WidgetText;
 
