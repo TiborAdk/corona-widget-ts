@@ -609,6 +609,14 @@ class IncidenceContainer extends CustomWidgetStack {
         if (arrow)
             this.setArrow(arrow);
     }
+    setFont(font, fontSizeOffset) {
+        this.part0.font = font;
+        if (fontSizeOffset)
+            this.part1.font = font.newSizedByOffset(fontSizeOffset);
+    }
+    setFontSmaller(font) {
+        this.part1.font = font;
+    }
     setIncidence(incidence) {
         const color = UI.getIncidenceColor(incidence);
         this.part0.textColor = color;
@@ -968,6 +976,16 @@ class AreaRowStack extends IncidenceRowStackBase {
     }
     setData(data, incidenceTrend, minmax) {
         super.setData(data, incidenceTrend, minmax);
+        const incidence = data.getDay()?.incidence;
+        console.log(incidence);
+        if (incidence && incidence >= 1000) {
+            //console.log('AreaRowStack: Incidence > 1000 setting small font.');
+            this.incidenceContainer.setFont(CustomFont.boldMono(19));
+        }
+        else {
+            //console.log('AreaRowStack: Incidence < 1000 setting large font');
+            this.incidenceContainer.setFont(CustomFont.boldMono(26), -6);
+        }
         this.setAreaIBZ(data.meta.IBZ);
     }
 }
