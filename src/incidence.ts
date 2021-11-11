@@ -132,6 +132,7 @@ enum TrendArrow {
 
 class Colors {
     static readonly WARN: Color = new Color('#dbc43d', 1);
+    static readonly DARKVIOLET: Color = new Color('#790176', 1);
     static readonly PINK: Color = new Color('#d90183', 1);
     static readonly DARKDARKRED: Color = new Color('#6b1200', 1);
     static readonly DARKRED: Color = new Color('#a1232b', 1);
@@ -235,7 +236,8 @@ class CustomFont extends Font {
 type IncidenceLimit = { color: Color; limit: number }
 
 class Incidence {
-    static readonly PINK: IncidenceLimit = {limit: 500, color: Colors.PINK}
+    static readonly DARKVIOLET: IncidenceLimit = {limit: 1000, color: Colors.DARKVIOLET};
+    static readonly PINK: IncidenceLimit = {limit: 500, color: Colors.PINK};
     static readonly DARKDARKRED: IncidenceLimit = {limit: 250, color: Colors.DARKDARKRED};
     static readonly DARKRED: IncidenceLimit = {limit: 100, color: Colors.DARKRED};
     static readonly RED: IncidenceLimit = {limit: 50, color: Colors.RED};

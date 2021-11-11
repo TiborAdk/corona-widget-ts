@@ -102,6 +102,7 @@ var TrendArrow;
 class Colors {
 }
 Colors.WARN = new Color('#dbc43d', 1);
+Colors.DARKVIOLET = new Color('#790176', 1);
 Colors.PINK = new Color('#d90183', 1);
 Colors.DARKDARKRED = new Color('#6b1200', 1);
 Colors.DARKRED = new Color('#a1232b', 1);
@@ -188,6 +189,7 @@ CustomFont.SMALL2_MONO = CustomFont.boldMono(10);
 CustomFont.XSMALL_MONO = CustomFont.boldMono(9);
 class Incidence {
 }
+Incidence.DARKVIOLET = { limit: 1000, color: Colors.DARKVIOLET };
 Incidence.PINK = { limit: 500, color: Colors.PINK };
 Incidence.DARKDARKRED = { limit: 250, color: Colors.DARKDARKRED };
 Incidence.DARKRED = { limit: 100, color: Colors.DARKRED };
