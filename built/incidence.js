@@ -4,7 +4,7 @@
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
 const CFG = {
     config: "1.3",
-    version: '1.8',
+    version: '1.9',
     autoUpdate: true,
     autoUpdateInterval: 1,
     geoCacheAccuracy: 1,
@@ -24,7 +24,7 @@ const CFG = {
     },
     widgets: {},
 };
-const VERSION = '1.8';
+const VERSION = '1.9';
 const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
 const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
 const DIR_DEV = 'corona_widget_dev';

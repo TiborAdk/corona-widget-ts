@@ -6,7 +6,7 @@
 
 const CFG: Config = {
     config: "1.3",
-    version: '1.8',
+    version: '1.9',
     autoUpdate: true, // whether the script should update it self
     autoUpdateInterval: 1, // how often the script should update it self (in days)
     geoCacheAccuracy: 1, // accuracy the gps staticCoords are cached with (0: 111 Km; 1: 11,1 Km; 2: 1,11 Km; 3: 111 m; 4: 11,1 m)
@@ -33,7 +33,7 @@ const CFG: Config = {
     widgets: {},
 }
 
-const VERSION = '1.8';
+const VERSION = '1.9';
 const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
 const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
 const DIR_DEV = 'corona_widget_dev';
