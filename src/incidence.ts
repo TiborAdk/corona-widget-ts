@@ -1597,8 +1597,6 @@ class IncidenceListWidget extends CustomListWidget {
         const pad = this.isSmall() ? 4 : 6;
         this.setPadding(pad, pad, pad - footerSpacing, pad);
 
-        const maxShown = this.isLarge() ? 6 : this.isMedium() ? 2 : 1;
-
         this.header = this.addTopBar();
         this.addSpacer(3);
         this.areaListStack = this.addAreaRowsStack();
@@ -1678,7 +1676,7 @@ class IncidenceListWidget extends CustomListWidget {
         }
 
         const areaRowsFiltered = areaRows.filter(elem => elem.data?.meta.RS !== currentLocation?.data?.meta.RS);
-        if( currentLocation){
+        if(currentLocation){
             areaRowsFiltered.unshift(currentLocation);
         }
 
@@ -1711,13 +1709,13 @@ class IncidenceListWidget extends CustomListWidget {
         }
 
         if (this.isLarge() && this.config.alternateLarge) {
-            const multiRows = Helper.aggregateToMultiRows(areaRowsFiltered, states, 8);
+            const multiRows = Helper.aggregateToMultiRows(areaRowsFiltered, states, this.maxShown);
             this.areaListStack.addMultiAreas(multiRows, this.incidenceTrend, graphMinMax);
         } else if (this.isLarge() && !this.config.alternateLarge) {
-            this.addAreas(areaRowsFiltered.slice(0, 6), graphMinMax);
+            this.addAreas(areaRowsFiltered.slice(0, this.maxShown), graphMinMax);
             this.addStates(states);
         } else {
-            this.addAreas(areaRowsFiltered, graphMinMax);
+            this.addAreas(areaRowsFiltered.slice(0, this.maxShown), graphMinMax);
             const shownStates: IncidenceData<MetaState | MetaCountry>[] = states;
             if (this.isSmall() && respGer.succeeded() && !respGer.isEmpty()) shownStates.push(respGer.data);
             this.addStates(shownStates);
@@ -1728,6 +1726,18 @@ class IncidenceListWidget extends CustomListWidget {
         this.refreshAfterDate = new Date(Date.now() + this.config.refreshInterval * 1000);
 
         this.setWidgetInfo(VERSION, this.config.graphShowIndex, 'RKI');
+    }
+
+    get maxShown(): number {
+        if (this.isLarge() && this.config.alternateLarge) {
+            return 8;
+        } else if (this.isLarge()) {
+            return 6;
+        } else if (this.isMedium()) {
+            return 2;
+        } else {
+            return 1;
+        }
     }
 
     private addTopBar(): HeaderStack {
@@ -1750,7 +1760,7 @@ class IncidenceListWidget extends CustomListWidget {
         this.areaListStack.addArea({status, data, name}, this.incidenceTrend, minmax);
     }
 
-    addAreas(dataRows: { status: DataStatus, data?: IncidenceData<MetaArea>, name?: string }[], minmax?: IncGraphMinMax, showVaccine = false) {
+    addAreas(dataRows: { status: DataStatus, data?: IncidenceData<MetaArea>, name?: string }[], minmax?: IncGraphMinMax) {
         this.areaListStack.addAreas(dataRows, this.incidenceTrend, minmax);
     }
 

@@ -1222,7 +1222,6 @@ class IncidenceListWidget extends CustomListWidget {
         const footerSpacing = this.config.hideWidgetInfo ? 0 : 2;
         const pad = this.isSmall() ? 4 : 6;
         this.setPadding(pad, pad, pad - footerSpacing, pad);
-        const maxShown = this.isLarge() ? 6 : this.isMedium() ? 2 : 1;
         this.header = this.addTopBar();
         this.addSpacer(3);
         this.areaListStack = this.addAreaRowsStack();
@@ -1324,15 +1323,15 @@ class IncidenceListWidget extends CustomListWidget {
             }
         }
         if (this.isLarge() && this.config.alternateLarge) {
-            const multiRows = Helper.aggregateToMultiRows(areaRowsFiltered, states, 8);
+            const multiRows = Helper.aggregateToMultiRows(areaRowsFiltered, states, this.maxShown);
             this.areaListStack.addMultiAreas(multiRows, this.incidenceTrend, graphMinMax);
         }
         else if (this.isLarge() && !this.config.alternateLarge) {
-            this.addAreas(areaRowsFiltered.slice(0, 6), graphMinMax);
+            this.addAreas(areaRowsFiltered.slice(0, this.maxShown), graphMinMax);
             this.addStates(states);
         }
         else {
-            this.addAreas(areaRowsFiltered, graphMinMax);
+            this.addAreas(areaRowsFiltered.slice(0, this.maxShown), graphMinMax);
             const shownStates = states;
             if (this.isSmall() && respGer.succeeded() && !respGer.isEmpty())
                 shownStates.push(respGer.data);
@@ -1343,6 +1342,20 @@ class IncidenceListWidget extends CustomListWidget {
             this.url = this.config.openUrl;
         this.refreshAfterDate = new Date(Date.now() + this.config.refreshInterval * 1000);
         this.setWidgetInfo(VERSION, this.config.graphShowIndex, 'RKI');
+    }
+    get maxShown() {
+        if (this.isLarge() && this.config.alternateLarge) {
+            return 8;
+        }
+        else if (this.isLarge()) {
+            return 6;
+        }
+        else if (this.isMedium()) {
+            return 2;
+        }
+        else {
+            return 1;
+        }
     }
     addTopBar() {
         return new HeaderStack(this.addStack(), this.size, '🦠');
@@ -1359,7 +1372,7 @@ class IncidenceListWidget extends CustomListWidget {
     addArea(status, data, name, minmax) {
         this.areaListStack.addArea({ status, data, name }, this.incidenceTrend, minmax);
     }
-    addAreas(dataRows, minmax, showVaccine = false) {
+    addAreas(dataRows, minmax) {
         this.areaListStack.addAreas(dataRows, this.incidenceTrend, minmax);
     }
     addStates(states, minmax) {
