@@ -12,7 +12,9 @@
     "src/Config.d.ts",
     "src/WidgetConfig.d.ts",
     "src/RkiService.d.ts",
-    "src/VaccineData.d.ts"
+    "src/VaccineData.d.ts",
+    "src/IncidenceListWidget.d.ts",
+    "src/CustomLocation.d.ts"
   ],
   "exclude": [
     "./node_modules"

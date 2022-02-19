@@ -1781,14 +1781,6 @@ class IncidenceListWidget extends CustomListWidget {
     }
 }
 
-type IncidenceValue = IncidenceGraphData & {
-    date: Date;
-}
-
-type IncidenceValueStored = IncidenceGraphData & {
-    date: string;
-}
-
 class UI {
     static generateGraph(data: Record<string, number>[], size: Size, minmax: IncGraphMinMax = {}, valueIndex = 'cases', colorIndex: string | number = 'incidence',
                          align: Align = Align.LEFT, upsideDown: boolean = CFG.def.graphUpsideDown): DrawContext {
@@ -2771,14 +2763,6 @@ enum LocationType {
     STATIC = 'loc_static',
 }
 
-interface CustomLocationInterface {
-    latitude: number;
-    longitude: number;
-    type: LocationType;
-    name?: string;
-    status?: LocationStatus;
-}
-
 class CustomLocation implements CustomLocationInterface {
     latitude: number;
     longitude: number;
@@ -3748,21 +3732,7 @@ enum RequestType {
     STRING = 'string'
 }
 
-interface RkiServiceInterface {
-    cache: Map<string, any>
-
-    locationData: ({longitude, latitude}: { latitude: number, longitude: number }) => Promise<any>;
-    casesArea: (id: string) => Promise<boolean | IncidenceValue[]>;
-    casesState: (id: string) => Promise<boolean | IncidenceValue[]>;
-    casesGer: () => Promise<boolean | IncidenceValue[]>;
-    rData: () => Promise<Rdata>;
-    getCases: (urlToday: string, urlHistory: string) => Promise<boolean | IncidenceValue[]>;
-    exec: (url: string, type: RequestType) => Promise<DataResponse<any>>;
-    execCached: (url: string, type: RequestType) => Promise<DataResponse<any>>;
-
-}
-
-class RkiService /*implements RkiServiceInterface*/ {
+class RkiService implements RkiServiceInterface {
     cache: Map<string, DataResponse<{ [p: string]: any } | string> | EmptyResponse>;
     rkiApiEndpoint: string
 

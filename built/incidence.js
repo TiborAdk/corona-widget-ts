@@ -3068,7 +3068,7 @@ var RequestType;
     RequestType["JSON"] = "json";
     RequestType["STRING"] = "string";
 })(RequestType || (RequestType = {}));
-class RkiService /*implements RkiServiceInterface*/ {
+class RkiService {
     constructor() {
         this.cache = new Map();
         this.rkiApiEndpoint = "https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/Covid19_hubv/FeatureServer/0/";

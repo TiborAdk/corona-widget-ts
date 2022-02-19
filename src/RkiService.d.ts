@@ -40,3 +40,17 @@ interface ApiMetaArea {
     cases7_bl_per_100k: number,
     cases7_per_100k?: number,
 }
+
+interface RkiServiceInterface {
+    cache: Map<string, DataResponse<{ [p: string]: any } | string> | EmptyResponse>;
+
+    locationData: ({longitude, latitude}: { latitude: number, longitude: number }) => Promise<any>;
+    casesArea: (id: string) => Promise<false | IncidenceValue[]>;
+    casesState: (id: string) => Promise<false | IncidenceValue[]>;
+    casesGer: () => Promise<false | IncidenceValue[]>;
+    rData: () => Promise<Rdata>;
+    getCases: (urlToday: string, urlHistory: string) => Promise<false | IncidenceValue[]>;
+    exec: (url: string, type: RequestType) => Promise<DataResponse<{ [p: string]: any } | string> | EmptyResponse>;
+    execCached: (url: string, type: RequestType) => Promise<DataResponse<any>>;
+
+}
