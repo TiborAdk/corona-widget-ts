@@ -2,9 +2,17 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: red; icon-glyph: briefcase-medical;
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
+const VERSION = '1.10';
+const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
+const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
+const DIR_DEV = 'corona_widget_dev';
+const FILE_DEV = 'dev';
+const DIR = 'corona_widget_ts';
+const FILE = 'corona_widget';
+const CSV_RVALUE_FIELDS = ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes', 'Schไtzer_7_Tage_R_Wert', 'Punktschไtzer des 7-Tage-R Wertes', 'PS_7_Tage_R_Wert'];
 const CFG = {
     config: "1.3",
-    version: '1.10',
+    version: VERSION,
     autoUpdate: true,
     autoUpdateInterval: 1,
     geoCacheAccuracy: 1,
@@ -24,14 +32,6 @@ const CFG = {
     },
     widgets: {},
 };
-const VERSION = '1.10';
-const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
-const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
-const DIR_DEV = 'corona_widget_dev';
-const FILE_DEV = 'dev';
-const DIR = 'corona_widget_ts';
-const FILE = 'corona_widget';
-const CSV_RVALUE_FIELDS = ['Schätzer_7_Tage_R_Wert', 'Punktschätzer des 7-Tage-R Wertes', 'Schไtzer_7_Tage_R_Wert', 'Punktschไtzer des 7-Tage-R Wertes', 'PS_7_Tage_R_Wert'];
 var AreaType;
 (function (AreaType) {
     AreaType["KS"] = "KS";
@@ -1341,7 +1341,7 @@ class IncidenceListWidget extends CustomListWidget {
         if (this.config.openUrlOnTap)
             this.url = this.config.openUrl;
         this.refreshAfterDate = new Date(Date.now() + this.config.refreshInterval * 1000);
-        this.setWidgetInfo(VERSION, this.config.graphShowIndex, 'RKI');
+        this.setWidgetInfo(CFG.version, this.config.graphShowIndex, 'RKI');
     }
     get maxShown() {
         if (this.isLarge() && this.config.alternateLarge) {
@@ -2669,6 +2669,69 @@ class Parse {
         return new Color(hex, alpha);
     }
 }
+class Version {
+    constructor(major, minor = 0, release = 0, beta = false) {
+        this.major = major < 0 ? 0 : major;
+        this.minor = minor < 0 ? 0 : minor;
+        this.release = release < 0 ? 0 : release;
+        this.beta = beta;
+    }
+    get arr() {
+        return [this.major, this.minor, this.release];
+    }
+    get str() {
+        return this.arr.join('.') + (this.beta ? '-beta' : '');
+    }
+    compare(version) {
+        return Version.compare(this, version);
+    }
+    equals(version) {
+        return Version.equals(this, version);
+    }
+    static equals(a, b) {
+        return a.arr === b.arr && a.beta === b.beta;
+    }
+    static compare(a, b) {
+        // 0 if a == b
+        // -1 if a < b
+        // 1 if a > b
+        if (Version.equals(a, b)) {
+            return 0;
+        }
+        for (let i = 0; i < a.arr.length; i++) {
+            if (a.arr[i] > b.arr[i]) {
+                return 1;
+            }
+            else if (a.arr[i] < b.arr[i]) {
+                return -1;
+            }
+        }
+        return 0;
+    }
+    static fromString(str) {
+        const arr = str.split('-');
+        let beta = false;
+        if (arr.length > 2) {
+            return null;
+        }
+        if (arr.length === 2) {
+            if (arr[1] !== 'beta') {
+                console.warn(`Parsing version failed. Unknown meta '${arr[1]}'`);
+                return null;
+            }
+            beta = true;
+        }
+        const versionArr = arr[0].split('.');
+        if (versionArr.length < 1 || versionArr.length > 3) {
+            console.warn(`Parsing version failed. Version to long/short got ${versionArr} allowed: (0,3)`);
+            return null;
+        }
+        const major = parseInt(versionArr[0]);
+        const minor = versionArr.length >= 2 ? parseInt(versionArr[1]) : undefined;
+        const release = versionArr.length === 3 ? parseInt(versionArr[2]) : undefined;
+        return new Version(major, minor, release, beta);
+    }
+}
 class Helper {
     static getDateBefore(offset, startDate = new Date()) {
         const offsetDate = new Date();
@@ -2900,14 +2963,14 @@ class Helper {
         const nextUpdate = new Date(lastUpdate);
         nextUpdate.setDate(nextUpdate.getDate() + autoUpdateInterval);
         if (nextUpdate > currentDate) {
-            console.log(`updateScript: skip (last update less than ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
+            console.log(`updateScript: skip (last update ${lastUpdate} less than ${autoUpdateInterval} day${autoUpdateInterval !== 1 ? 's' : ''} ago)`);
             return;
         }
         const lastCheck = new Date(_data['lastCheck'] ?? 0);
         const nextCheck = new Date(lastCheck);
         nextCheck.setDate(nextCheck.getDate() + 1); // if the last update is older than the autoUpdateInterval we check daily for updates based on the version
         if (nextCheck > currentDate) {
-            console.log('updateScript: skip (last check less than 1 day ago)');
+            console.log(`updateScript: skip (last check ${lastCheck} less than 1 day ago)`);
             return;
         }
         const cfg = await Helper.getLatestConfig();
@@ -2915,8 +2978,18 @@ class Helper {
             console.log('updateScript: abort. getting config failed.');
             return;
         }
-        if (VERSION >= cfg.version) {
-            console.log('updateScript: skip. provided version not newer than current or invalid');
+        const versionCurrent = Version.fromString(VERSION);
+        if (versionCurrent === null) {
+            console.warn(`updateScript: abort. invalid version of the script ${VERSION}`);
+            return;
+        }
+        const versionRemote = Version.fromString(cfg.version);
+        if (versionRemote === null) {
+            console.warn(`updateScript: abort. invalid version of new configuration ${cfg.version}`);
+            return;
+        }
+        if (versionCurrent.compare(versionRemote) != -1) {
+            console.log(`updateScript: skip. current version >= provided version (${versionCurrent.str} >= ${versionRemote.str})`);
             _data['lastCheck'] = currentDate;
             cfm.write(_data, '.data.json', FileType.JSON, true); // .data.json is stored in configDir
             return;
