@@ -1,12 +1,14 @@
+ type ApiVaccineName = "biontech" | "moderna" | "astrazeneca" | "janssen" | "novavax";
+
 interface ApiVaccineFullyVaccinated {
-    name: "biontech" | "moderna" | "astrazeneca" | "janssen",
+    name: ApiVaccineName,
     firstDoses: number,
     secondDoses?: number,
     totalDoses: number
 }
 
 interface ApiVaccinatedAtLeastOnce {
-    name: "biontech" | "moderna" | "astrazeneca" | "janssen",
+    name: ApiVaccineName,
     doses: number,
 }
 

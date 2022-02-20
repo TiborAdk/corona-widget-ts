@@ -3303,7 +3303,7 @@ class RkiService {
             return false;
         }
         const name = data['name'];
-        if (!["biontech", "moderna", "astrazeneca", "janssen"].includes(name)) {
+        if (!["biontech", "moderna", "astrazeneca", "janssen", "novavax"].includes(name)) {
             console.warn(`isApiVaccinatedAtLeastOnce: data not of type 'ApiVaccinatedAtLeastOnce', wrong value for 'name'. (${name})`);
             return false;
         }
@@ -3320,7 +3320,7 @@ class RkiService {
             return false;
         }
         const name = data['name'];
-        if (!["biontech", "moderna", "astrazeneca", "janssen"].includes(name)) {
+        if (!["biontech", "moderna", "astrazeneca", "janssen", "novavax"].includes(name)) {
             console.warn(`isApiVaccineFullyVaccinated: data not of type 'ApiVaccineFullyVaccinated', wrong value for 'name'. (${name})`);
             return false;
         }
