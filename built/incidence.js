@@ -2893,7 +2893,7 @@ class Helper {
             if (resp.status === DataStatus.OK && !resp.isEmpty()) {
                 // Todo check format of loaded config
                 const cfg_default = resp.data;
-                Helper.mergeConfig(CFG, cfg_default);
+                Helper.mergeConfig(CFG, cfg_default, ["version"]);
             }
             else {
                 console.warn('error reading defaults');
@@ -2908,7 +2908,7 @@ class Helper {
                 // Todo check format of loaded config
                 console.log('Config loaded successfully.');
                 const cfg = resp.data;
-                Helper.mergeConfig(CFG, cfg);
+                Helper.mergeConfig(CFG, cfg, ["version"]);
             }
             else {
                 console.warn('error reading config');
