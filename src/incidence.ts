@@ -3,7 +3,7 @@
 // icon-color: red; icon-glyph: briefcase-medical;
 
 // Licence: Robert-Koch-Institut (RKI), dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)
-const VERSION = '1.9.1';
+const VERSION = '1.10.1-beta';
 const HTTP_SCRIPT = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/built/incidence.js';
 const HTTP_CONFIG = 'https://raw.githubusercontent.com/TiborAdk/corona-widget-ts/master/config.json';
 const DIR_DEV = 'corona_widget_dev';
